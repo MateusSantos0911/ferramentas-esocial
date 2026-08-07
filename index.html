@@ -203,9 +203,10 @@
   #gateMenu{display:none;width:100%;min-height:100vh;background:#F3F5F7;color:#172033;
     font-family:Inter,"Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif}
   #gateMenu *{box-sizing:border-box}
-  .lm-shell{display:flex;min-height:100vh}
-  /* barra lateral: mesma faixa institucional da tela de login */
-  .lm-side{flex:0 0 280px;max-width:280px;background:#0B1F3A;color:#fff;display:flex;flex-direction:column;padding:26px 18px}
+  .lm-shell{display:flex;min-height:100vh;height:100vh}
+  /* barra lateral: mesma faixa institucional da tela de login — fica fixa, so o centro troca */
+  .lm-side{flex:0 0 280px;max-width:280px;background:#0B1F3A;color:#fff;display:flex;flex-direction:column;padding:26px 18px;
+    height:100%;overflow-y:auto}
   .lm-brand{display:flex;align-items:center;gap:12px;padding:0 4px 20px;border-bottom:1px solid rgba(255,255,255,.13)}
   .lm-logo{width:44px;flex:none;line-height:0}
   .lm-logo svg{width:100%;height:auto;display:block}
@@ -221,6 +222,14 @@
     display:flex;align-items:center;justify-content:center;color:#fff;transition:background .12s}
   .lm-item-ic svg{width:23px;height:23px}
   .lm-item:hover .lm-item-ic{background:#1E5AA8}
+  /* Inicio e acao secundaria: item menor que os das ferramentas */
+  .lm-side [data-home].lm-item{padding:8px 12px;gap:11px;color:#AEC2DE}
+  .lm-side [data-home] .lm-item-ic{width:30px;height:30px;border-radius:8px}
+  .lm-side [data-home] .lm-item-ic svg{width:16px;height:16px}
+  .lm-side [data-home] .lm-item-t{font-size:13px}
+  .lm-navsep{height:1px;background:rgba(255,255,255,.13);margin:6px 4px}
+  .lm-item.active{background:rgba(255,255,255,.14);color:#fff}
+  .lm-item.active .lm-item-ic{background:#1E5AA8}
   .lm-item-txt{min-width:0}
   .lm-item-t{display:block;font-size:15.5px;font-weight:600;line-height:1.3}
   .lm-foot{margin-top:auto;display:flex;flex-direction:column;gap:6px;padding-top:20px;border-top:1px solid rgba(255,255,255,.13)}
@@ -230,7 +239,15 @@
   .lm-foot-btn.exit{color:#F6B8C4}
   .lm-foot-btn.exit:hover{border-color:#F6B8C4;background:rgba(190,18,60,.30);color:#fff}
   /* centro: marca d'água da PGE + chamada */
-  .lm-main{flex:1 1 auto;position:relative;display:flex;align-items:center;justify-content:center;padding:30px;overflow:hidden}
+  .lm-main{flex:1 1 auto;min-width:0;height:100%;position:relative;display:flex;align-items:center;justify-content:center;padding:30px;overflow:hidden}
+  /* ferramenta aberta: o centro vira a area de conteudo e rola sozinho (a barra lateral nao se mexe) */
+  .lm-main.tool{display:block;padding:0;overflow-y:auto;overflow-x:hidden;background:var(--bg)}
+  .lm-main.tool .lm-wm,.lm-main.tool .lm-status{display:none}
+  .lm-main .wrap.screen,.lm-main:not(.tool) .lm-status{animation:lmIn .2s ease-out}
+  /* marca d'agua das ferramentas: some no inicio (la ja tem a do menu) e recentra na area de conteudo */
+  .lm-main:not(.tool) .wm{display:none}
+  @media(min-width:901px){ .lm-main.tool .wm{left:calc(50% + 140px)} }
+  @keyframes lmIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
   .lm-wm{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;pointer-events:none;z-index:0}
   .lm-wm svg{width:min(44vw,420px);height:auto;opacity:.07}
   .lm-wm svg [fill="white"]{fill:#0B1F3A}
@@ -253,10 +270,11 @@
   .lm-mini.danger{flex:none;color:#BE123C;border-color:#F1C6CF;padding:6px 9px}
   .lm-mini.danger:hover{border-color:#BE123C;color:#BE123C}
   @media(max-width:900px){
-    .lm-shell{flex-direction:column}
-    .lm-side{flex:none;max-width:none;padding:18px 16px}
+    .lm-shell{flex-direction:column;height:auto}
+    .lm-side{flex:none;max-width:none;padding:18px 16px;height:auto;overflow:visible}
     .lm-nav{margin-top:18px}
-    .lm-main{flex-direction:column;align-items:center;justify-content:flex-start;padding:22px 16px 44px;min-height:44vh}
+    .lm-main{flex-direction:column;align-items:center;justify-content:flex-start;padding:22px 16px 44px;min-height:44vh;height:auto;overflow:visible}
+    .lm-main.tool{padding:0;overflow:visible}
     .lm-status{position:static;width:min(320px,100%);margin:0 0 22px}
     .lm-wm svg{width:66vw}
   }
@@ -562,6 +580,11 @@
           </div>
         </div>
         <nav class="lm-nav">
+          <button type="button" class="lm-item" data-home>
+            <span class="lm-item-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg></span>
+            <span class="lm-item-txt"><span class="lm-item-t">In&iacute;cio</span></span>
+          </button>
+          <div class="lm-navsep"></div>
           <button type="button" class="lm-item" data-tool="tool-3">
             <span class="lm-item-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="8" x2="8" y1="14" y2="14"/><line x1="12" x2="12" y1="14" y2="14"/><line x1="16" x2="16" y1="14" y2="14"/><line x1="8" x2="8" y1="18" y2="18"/><line x1="12" x2="12" y1="18" y2="18"/><line x1="16" x2="16" y1="18" y2="18"/><line x1="8" x2="16" y1="10" y2="10"/></svg></span>
             <span class="lm-item-txt"><span class="lm-item-t">Confer&ecirc;ncia de INSS (RGPS)</span></span>
@@ -613,20 +636,34 @@
   (function(){ var src=document.querySelector("#__gateForm .gate-logo svg"); if(!src) return;
     var sd=document.getElementById("lmLogo"); if(sd && !sd.firstChild) sd.appendChild(src.cloneNode(true));
     var wm=document.getElementById("menuWm"); if(wm && !wm.firstChild) wm.appendChild(src.cloneNode(true)); })();
+  var mainEl=null;
+  function lmMain(){ if(!mainEl) mainEl=document.querySelector("#gateMenu .lm-main"); return mainEl; }
+  // com a casca fixa, quem rola e o centro — nao a janela
+  window.__appScrollTop=function(smooth){ var m=lmMain(), o={top:0,behavior:smooth?"smooth":"auto"};
+    if(m && m.classList.contains("tool")) m.scrollTo(o); else window.scrollTo(o); };
+  function markActive(id){ document.querySelectorAll("#gateMenu .lm-item").forEach(function(b){
+    var t=b.getAttribute("data-tool");
+    b.classList.toggle("active", id ? (t===id) : b.hasAttribute("data-home")); }); }
   function showHome(){
     if(authCard) authCard.style.display="none";
     if(menu) menu.style.display="block";
     TOOLS.forEach(function(t){ var el=document.getElementById(t); if(el) el.style.display="none"; });
+    var m=lmMain(); if(m){ m.classList.remove("tool"); m.scrollTop=0; }
+    markActive(null);
     gate.style.display="flex";
     document.documentElement.style.overflow="hidden";
   }
+  // abrir uma ferramenta troca SO o centro: a barra lateral continua na tela
   window.__openTool=function(id){
-    gate.style.display="none";
-    document.documentElement.style.overflow="";
+    if(authCard) authCard.style.display="none";
+    if(menu) menu.style.display="block";
+    gate.style.display="flex";
+    document.documentElement.style.overflow="hidden";
     TOOLS.forEach(function(t){ var el=document.getElementById(t); if(el) el.style.display=(t===id?"block":"none"); });
-    window.scrollTo(0,0);
+    var m=lmMain(); if(m){ m.classList.add("tool"); m.scrollTop=0; }
+    markActive(id);
   };
-  window.__goHome=function(){ window.scrollTo(0,0); showHome(); };
+  window.__goHome=function(){ showHome(); };
   function unlock(){ try{sessionStorage.setItem(KEY,"1");}catch(e){} showHome(); }
   // login unico: quando a nuvem restaura/realiza a sessao, libera o menu automaticamente
   window.__gateAuthOk=function(){ try{ if(menu && menu.style.display==="block") return; }catch(e){} unlock(); };
@@ -781,8 +818,6 @@
 
 <div class="wrap screen" id="tool-comparador">
 
-  <div class="toolbar"><button class="btn-home" data-home type="button">&larr; In&iacute;cio</button><span class="toolbar-name">Ferramenta 2 &middot; Confronto eSocial &times; ERGON</span></div>
-
   <header class="app">
     <div class="brand">
       <div class="eyebrow">PGE-RJ · Eventos periódicos do eSocial</div>
@@ -891,8 +926,6 @@
 </div>
 
 <div class="wrap screen" id="tool-dashboard">
-  <div class="toolbar"><button class="btn-home" data-home type="button">&larr; In&iacute;cio</button><span class="toolbar-name">Ferramenta 3 &middot; Dashboard &mdash; envio dos eventos</span></div>
-
   <header class="app">
     <div class="brand">
       <div class="eyebrow">PGE-RJ &middot; eSocial &mdash; acompanhamento de envio</div>
@@ -969,8 +1002,6 @@
 </div>
 
 <div class="wrap screen" id="tool-3">
-  <div class="toolbar"><button class="btn-home" data-home type="button">&larr; In&iacute;cio</button><span class="toolbar-name">Ferramenta 1 &middot; Confer&ecirc;ncia de INSS (RGPS)</span></div>
-
   <header class="app">
     <div class="brand">
       <div class="eyebrow">PGE-RJ &middot; eSocial &mdash; INSS RGPS &times; DCTFWeb</div>
@@ -1069,8 +1100,6 @@
 </style>
 
 <div class="wrap screen" id="tool-envio">
-  <div class="toolbar"><button class="btn-home" data-home type="button">&larr; In&iacute;cio</button><span class="toolbar-name">Ferramenta 3 &middot; Controle de envio dos eventos</span></div>
-
   <header class="app">
     <div class="brand">
       <div class="eyebrow">PGE-RJ &middot; eSocial &mdash; controle de envio</div>
@@ -1836,7 +1865,7 @@ function clearDivergences(){
   try{ localStorage.removeItem(SESSION_KEY); }catch(e){}
   $('#fileDiv').value=''; // permite recarregar o mesmo arquivo
   $('#btnExport').disabled=true;
-  window.scrollTo({top:0,behavior:'smooth'});
+  if(window.__appScrollTop) window.__appScrollTop(true); else window.scrollTo({top:0,behavior:'smooth'});
 }
 $('#btnClear').addEventListener('click',clearDivergences);
 
@@ -1916,7 +1945,7 @@ function restoreSession(){
     setHonorLoadedUI(honorMap.size);
   }
   processDivergences(s.divRows);
-  window.scrollTo({top:0,behavior:'smooth'});
+  if(window.__appScrollTop) window.__appScrollTop(true); else window.scrollTo({top:0,behavior:'smooth'});
 }
 
 /* ---------- ajustes de regra (UI) ---------- */
@@ -2839,6 +2868,12 @@ function initCloud(){
 }
 
 /* init */
+/* casca do app: as telas das ferramentas passam a viver DENTRO do centro do menu,
+   entao trocar de ferramenta nao redesenha a barra lateral */
+(function(){ var main=document.querySelector('#gateMenu .lm-main'); if(!main) return;
+  var wm=document.querySelector('body > .wm'); if(wm) main.appendChild(wm);   // marca d'agua das ferramentas
+  ['tool-comparador','tool-dashboard','tool-3','tool-envio'].forEach(function(id){
+    var el=document.getElementById(id); if(el) main.appendChild(el); }); })();
 loadRules();
 initTheme();
 initCloud();
