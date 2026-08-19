@@ -278,6 +278,31 @@
     .lm-status{position:static;width:min(320px,100%);margin:0 0 22px}
     .lm-wm svg{width:66vw}
   }
+  /* ===== Ferramenta 4: nao localizados no eSocial ===== */
+  .inx-explain{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--action);border-radius:8px;padding:12px 16px;font-size:13px;color:var(--muted);line-height:1.55;margin:18px 0 16px}
+  .inx-explain b{color:var(--ink)}
+  .inx-alert{display:flex;align-items:flex-start;gap:12px;background:#FEF3C7;border:1px solid #F5C86B;border-left:4px solid #B45309;border-radius:8px;padding:13px 16px;margin:20px 0 2px;color:#7C4A03}
+  .inx-alert .ic{font-size:19px;line-height:1.1;flex:none}
+  .inx-alert .t{font-size:13.5px;font-weight:700}
+  .inx-alert .d{font-size:12.5px;margin-top:3px;line-height:1.5}
+  .inx-alert b{color:#7C4A03}
+  .inx-row{background:var(--surface);border:1px solid var(--line);border-left:3px solid var(--line);border-radius:8px;padding:12px 14px;margin-bottom:8px}
+  .inx-row.ev1200{border-left-color:var(--s1200)}
+  .inx-row.ev1202{border-left-color:var(--s1202)}
+  .inx-row.ev1207{border-left-color:var(--s1207)}
+  .inx-row.evrev{border-left-color:var(--warn)}
+  .inx-row.evben{border-left-width:5px;border-left-color:#B45309;background:#FFFBEB}
+  .inx-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  .inx-name{font-weight:650;font-size:14px}
+  .inx-mat{font-family:var(--mono);font-size:12px;color:var(--muted)}
+  .inx-meta{margin-top:6px;display:flex;flex-wrap:wrap;gap:5px 8px;align-items:center;font-size:12px;color:var(--muted)}
+  .inx-note{margin-top:6px;font-size:12px;color:var(--warn)}
+  .inx-ben{font-size:11.5px;font-weight:800;letter-spacing:.04em;padding:3px 9px;border-radius:5px;background:#B45309;color:#fff}
+  .inx-benmsg{margin-top:7px;font-size:12.5px;font-weight:600;color:#7C4A03;background:#FDE9C0;border-radius:6px;padding:6px 10px;display:inline-block}
+  html[data-theme="dark"] .inx-row.evben{background:rgba(180,83,9,.17)}
+  html[data-theme="dark"] .inx-alert{background:rgba(180,83,9,.18);border-color:rgba(245,200,107,.42);color:#F3CE8C}
+  html[data-theme="dark"] .inx-alert b{color:#F3CE8C}
+  html[data-theme="dark"] .inx-benmsg{background:rgba(180,83,9,.32);color:#F7D9A6}
   /* ===== telas / toolbar ===== */
   .screen{display:none}
   .toolbar{display:flex;align-items:center;gap:14px;margin-bottom:18px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
@@ -597,6 +622,10 @@
             <span class="lm-item-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg></span>
             <span class="lm-item-txt"><span class="lm-item-t">Controle de envio dos eventos</span></span>
           </button>
+          <button type="button" class="lm-item" data-tool="tool-inexist">
+            <span class="lm-item-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><circle cx="5" cy="14" r="3"/><path d="m9 18-1.5-1.5"/></svg></span>
+            <span class="lm-item-txt"><span class="lm-item-t">N&atilde;o localizados no eSocial</span></span>
+          </button>
         </nav>
         <div class="lm-foot">
           <button type="button" class="lm-foot-btn" data-theme-toggle>&#127769; Tema escuro</button>
@@ -631,7 +660,7 @@
   var gate=document.getElementById("__gate");
   var authCard=document.getElementById("__gateForm");
   var menu=document.getElementById("gateMenu");
-  var TOOLS=["tool-comparador","tool-dashboard","tool-3","tool-envio"];
+  var TOOLS=["tool-comparador","tool-dashboard","tool-3","tool-envio","tool-inexist"];
   // reaproveita o logo da PGE do card de login (evita duplicar ~65KB de SVG): barra lateral + marca d'agua
   (function(){ var src=document.querySelector("#__gateForm .gate-logo svg"); if(!src) return;
     var sd=document.getElementById("lmLogo"); if(sd && !sd.firstChild) sd.appendChild(src.cloneNode(true));
@@ -1152,6 +1181,44 @@
   </div>
 
   <div id="envPlaceholder" class="empty">Importe os esperados (passo &#9312;) e os JSONs gerados (passo &#9313;) para montar o controle. Tudo roda no seu navegador.</div>
+</div>
+
+<div class="wrap screen" id="tool-inexist">
+  <header class="app">
+    <div class="brand">
+      <div class="eyebrow">PGE-RJ &middot; eSocial &mdash; pend&ecirc;ncias do ERGON</div>
+      <h1>N&atilde;o localizados no eSocial</h1>
+    </div>
+    <div class="basebox">
+      Compet&ecirc;ncia: <b id="inxComp">&mdash;</b><br>
+      <button id="inxClear">Limpar</button>
+    </div>
+  </header>
+
+  <div class="inx-explain">
+    Importe o relat&oacute;rio do ERGON com os v&iacute;nculos que <b>n&atilde;o foram encontrados no eSocial</b>. Cada linha &eacute; cruzada com a <b>base de servidores</b> e a ferramenta mostra <b>em qual evento aquele v&iacute;nculo deveria ter ido</b> (mesma regra da Ferramenta 2). V&iacute;nculos do tipo <b>BENEF&Iacute;CIOS</b> aparecem destacados &mdash; o envio deles ao eSocial ainda n&atilde;o est&aacute; definido.
+  </div>
+
+  <div class="drop compact" id="inxDrop">
+    <div class="ic">&#9312;</div>
+    <div><div class="big" style="font-size:14px">Relat&oacute;rio de n&atilde;o localizados</div><div class="sub" id="inxStatus">LISTA_ERGONESO_INEXIST (.csv / .xlsx) &middot; arraste ou clique</div></div>
+    <input type="file" id="inxFile" accept=".csv,.xlsx" class="hidden">
+  </div>
+
+  <div id="inxResults" class="hidden">
+    <div id="inxAlert"></div>
+    <div class="cards" id="inxCards"></div>
+    <div class="controls">
+      <input type="search" id="inxSearch" placeholder="Buscar por CPF, nome ou matr&iacute;cula&hellip;">
+      <div class="chips" id="inxChips"></div>
+      <button class="btn-export" id="inxExport">Exportar .xlsx</button>
+    </div>
+    <div id="inxList"></div>
+  </div>
+
+  <div id="inxPlaceholder" class="empty">Importe o relat&oacute;rio para ver em qual evento cada v&iacute;nculo deveria ir. Carregue antes a <b>base de servidores</b> na tela inicial. Tudo roda no seu navegador.</div>
+
+  <footer>Classifica&ccedil;&atilde;o derivada da base ERGON (PLANO_PREVIDENCI&Aacute;RIO &middot; DTAPOSENT &middot; TIPOVINC), a mesma da Ferramenta 2. Ferramenta de uso interno &mdash; os dados n&atilde;o saem do seu navegador.</footer>
 </div>
 
 <script>/*! xlsx.js (C) 2013-present SheetJS -- http://sheetjs.com */
@@ -2867,12 +2934,174 @@ function initCloud(){
   updateCloudBtns(); updateMenuCloudUI();
 }
 
+/* ===================== Ferramenta 4 — nao localizados no eSocial ===================== */
+var inxItems=[], inxSearchT='', inxFilter=new Set(), inxCompTxt='', inxFileName='';
+const INX_BUCKETS=[
+  {k:'S-1200',   lab:'S-1200',     cls:'ev1200', chip:'c1200', card:'e1200', badge:'b1200', desc:'Remuneração — RGPS'},
+  {k:'S-1202',   lab:'S-1202',     cls:'ev1202', chip:'c1202', card:'e1202', badge:'b1202', desc:'Remuneração — RPPS (ativo)'},
+  {k:'S-1207',   lab:'S-1207',     cls:'ev1207', chip:'c1207', card:'e1207', badge:'b1207', desc:'Benefícios — RPPS (aposentado)'},
+  {k:'REVISAR',  lab:'Revisar',    cls:'evrev',  chip:'cwarn', card:'ewarn', badge:'bwarn', desc:'Sem classificação automática'},
+  {k:'BENEFICIO',lab:'Benefícios', cls:'evben',  chip:'cign',  card:'eign',  badge:'bign',  desc:'Envio ao eSocial indefinido'}
+];
+function inxEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function inxCpfFmt(c){ c=onlyDigits(c); return c.length===11 ? c.slice(0,3)+'.'+c.slice(3,6)+'.'+c.slice(6,9)+'-'+c.slice(9) : (c||'—'); }
+function inxBucketOf(ev){ return ev==='IGNORAR' ? 'BENEFICIO' : ev; }
+function inxBucketDef(k){ for(var i=0;i<INX_BUCKETS.length;i++) if(INX_BUCKETS[i].k===k) return INX_BUCKETS[i]; return INX_BUCKETS[3]; }
+
+function inxRead(file){
+  if(!baseRecs.length){ alert('Carregue primeiro a base de servidores (bloco "Base de servidores", na tela inicial).'); return; }
+  var fr=new FileReader();
+  fr.onload=function(){
+    var rows;
+    try{
+      if(/\.csv$/i.test(file.name||'')) rows=parseCSV(decodeBytes(fr.result));
+      else { var wb=XLSX.read(new Uint8Array(fr.result),{type:'array',cellDates:true}); rows=XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:'',cellDates:true}); }
+    }catch(e){ alert('Não consegui ler esse arquivo.'); return; }
+    if(!rows || !rows.length){ alert('Não encontrei linhas nesse relatório.'); return; }
+    var s=rows[0];
+    var K={ cpf:dshFindKey(s,'cpf'), fun:dshFindKey(s,'numfunc'), vin:dshFindKey(s,'numvinc'),
+            mat:dshFindKey(s,'matricula'), pens:dshFindKey(s,'numpens'), ano:dshFindKey(s,'ano'),
+            mes:dshFindKey(s,'mes'), cr:dshFindKey(s,'crmen') };
+    if(!K.cpf && !K.fun && !K.mat){ alert('Não encontrei as colunas CPF / NUMFUNC / MATRICULA nesse relatório.'); return; }
+    inxFileName=file.name||'arquivo';
+    inxCompute(rows,K);
+    $('#inxStatus').textContent=inxFileName+' · '+rows.length+' linha(s) · '+inxItems.length+' vínculo(s)';
+  };
+  fr.readAsArrayBuffer(file);
+}
+
+function inxCompute(rows,K){
+  var map=new Map(), comps=new Set(), g=function(r,k){ return k?String(r[k]==null?'':r[k]).trim():''; };
+  rows.forEach(function(r){
+    var cpf=K.cpf?padCpf(r[K.cpf]):'';
+    var fun=g(r,K.fun), vin=g(r,K.vin), matCol=g(r,K.mat);
+    var mat=(fun||vin)?(fun+'/'+vin):matCol;
+    var ano=g(r,K.ano), mes=g(r,K.mes), cr=g(r,K.cr), pens=g(r,K.pens);
+    if(ano&&mes) comps.add(String(mes).padStart(2,'0')+'/'+ano);
+    if(!cpf && !mat) return;
+    var key=cpf+'|'+mat, it=map.get(key);
+    if(!it){ it={cpf:cpf,mat:mat,numfunc:fun,numvinc:vin,pens:pens,ano:ano,mes:mes,crs:[],n:0}; map.set(key,it); }
+    it.n++; if(cr && it.crs.indexOf(cr)<0) it.crs.push(cr);
+    if(!it.pens && pens) it.pens=pens;
+  });
+  inxCompTxt=Array.from(comps).sort().join(', ');
+  inxItems=[];
+  map.forEach(function(it){
+    var rec=byMat.get(it.mat), matchBy=rec?'matrícula':null;
+    if(!rec && it.cpf){ var l=byCpf.get(it.cpf); if(l && l.length){ rec=l[0]; matchBy='CPF'; } }
+    var compOrd=(it.ano&&it.mes)?(parseInt(it.ano,10)*12+(parseInt(it.mes,10)-1)):null;
+    var cls=classify(rec,{NUMPENS:it.pens},compOrd);
+    it.rec=rec; it.matchBy=matchBy; it.cls=cls; it.bucket=inxBucketOf(cls.evento);
+    it.nome=rec?(rec.NOME||''):''; it.tipovinc=rec?(rec.TIPOVINC||''):''; it.cargo=rec?(rec.CARGO||''):'';
+    var cpfBase=rec?padCpf(rec.CPF):'';
+    it.cpfDif=!!(rec && matchBy==='matrícula' && cpfBase && it.cpf && cpfBase!==it.cpf);
+    inxItems.push(it);
+  });
+  var ord={'BENEFICIO':0,'REVISAR':1,'S-1207':2,'S-1202':3,'S-1200':4};
+  inxItems.sort(function(a,b){ return (ord[a.bucket]-ord[b.bucket]) || (a.nome||'zzz').localeCompare(b.nome||'zzz'); });
+  inxFilter=new Set(); inxSearchT=''; if($('#inxSearch')) $('#inxSearch').value='';
+  $('#inxComp').textContent=inxCompTxt||'—';
+  $('#inxResults').classList.remove('hidden');
+  $('#inxPlaceholder').classList.add('hidden');
+  inxRender();
+}
+
+function inxCounts(){
+  var c={total:inxItems.length};
+  INX_BUCKETS.forEach(function(b){ c[b.k]=0; });
+  inxItems.forEach(function(i){ c[i.bucket]=(c[i.bucket]||0)+1; });
+  c.semBase=inxItems.filter(function(i){ return !i.rec; }).length;
+  return c;
+}
+
+function inxRender(){
+  var c=inxCounts(), ben=c['BENEFICIO']||0;
+  $('#inxAlert').innerHTML = ben ? ('<div class="inx-alert"><span class="ic">&#9888;</span><div>'+
+    '<div class="t">'+ben+' v&iacute;nculo(s) do tipo BENEF&Iacute;CIOS neste relat&oacute;rio</div>'+
+    '<div class="d">O envio desses v&iacute;nculos ao eSocial <b>ainda n&atilde;o est&aacute; definido</b> &mdash; n&atilde;o trate como falta de envio sem confirmar a regra. Eles est&atilde;o destacados na lista abaixo.</div>'+
+    '</div></div>') : '';
+  var html='<div class="card etot"><div class="lab">V&iacute;nculos no relat&oacute;rio</div><div class="num">'+c.total+'</div><div class="meta">'+(c.semBase?c.semBase+' fora da base':'todos localizados na base')+'</div></div>';
+  INX_BUCKETS.forEach(function(b){ html+='<div class="card '+b.card+'"><div class="lab">'+b.lab+'</div><div class="num">'+(c[b.k]||0)+'</div><div class="meta">'+b.desc+'</div></div>'; });
+  $('#inxCards').innerHTML=html;
+  var ch='<button class="chip call" data-b="" aria-pressed="'+(inxFilter.size?'false':'true')+'">Todos</button>';
+  INX_BUCKETS.forEach(function(b){ ch+='<button class="chip '+b.chip+'" data-b="'+b.k+'" aria-pressed="'+(inxFilter.has(b.k)?'true':'false')+'">'+b.lab+' ('+(c[b.k]||0)+')</button>'; });
+  $('#inxChips').innerHTML=ch;
+  var t=(inxSearchT||'').trim().toLowerCase(), dt=onlyDigits(t);
+  var list=inxItems.filter(function(i){
+    if(inxFilter.size && !inxFilter.has(i.bucket)) return false;
+    if(!t) return true;
+    return (i.nome||'').toLowerCase().indexOf(t)>=0 || (i.mat||'').toLowerCase().indexOf(t)>=0 || (dt && i.cpf.indexOf(dt)>=0);
+  });
+  if(!list.length){ $('#inxList').innerHTML='<div class="none-shown">Nenhum v&iacute;nculo com esse filtro.</div>'; return; }
+  $('#inxList').innerHTML=list.map(function(i){
+    var b=inxBucketDef(i.bucket), isBen=(i.bucket==='BENEFICIO');
+    var badge=isBen ? '<span class="inx-ben">BENEF&Iacute;CIOS</span>' : '<span class="badge '+b.badge+'">'+b.lab+'</span>';
+    return '<div class="inx-row '+b.cls+'">'+
+      '<div class="inx-top">'+badge+
+        '<span class="inx-name">'+inxEsc(i.nome)+'</span>'+
+        '<span class="inx-mat">'+inxEsc(i.mat)+'</span>'+
+        '<span class="inx-mat">'+inxCpfFmt(i.cpf)+'</span>'+
+      '</div>'+
+      '<div class="inx-meta">'+
+        '<span class="tag reg">'+inxEsc(i.cls.regime||'—')+'</span>'+
+        '<span>'+inxEsc(i.cls.situacao||'')+'</span>'+
+        (i.tipovinc?'<span class="tag">v&iacute;nculo: <b>'+inxEsc(i.tipovinc)+'</b></span>':'')+
+        (i.cargo?'<span class="tag">'+inxEsc(i.cargo)+'</span>':'')+
+        (i.pens?'<span class="tag">pens&atilde;o '+inxEsc(i.pens)+'</span>':'')+
+        (i.crs.length?'<span class="tag">CRMEN '+inxEsc(i.crs.join(', '))+'</span>':'')+
+        (i.n>1?'<span class="tag">'+i.n+' linhas no relat&oacute;rio</span>':'')+
+        (!i.rec?'<span class="tag nohon">fora da base de servidores</span>':'')+
+        (i.cpfDif?'<span class="tag part">CPF difere do da base</span>':'')+
+      '</div>'+
+      (isBen?'<div class="inx-benmsg">Tipo de v&iacute;nculo <b>BENEF&Iacute;CIOS</b> &mdash; envio ao eSocial ainda indefinido.</div>':'')+
+      (i.cls.tempNote?'<div class="inx-note">'+inxEsc(i.cls.tempNote)+'</div>':'')+
+    '</div>';
+  }).join('');
+}
+
+function inxExport(){
+  if(!inxItems.length) return;
+  var aoa=[['Evento sugerido','Nome','Matrícula','CPF','Tipo de vínculo','Cargo','Regime','Plano','Situação','CRMEN','Linhas','Observação']];
+  inxItems.forEach(function(i){ aoa.push([
+    i.bucket==='BENEFICIO'?'BENEFÍCIOS (indefinido)':i.bucket, i.nome||'', i.mat, i.cpf,
+    i.tipovinc||'', i.cargo||'', i.cls.regime||'', i.cls.plano||'', i.cls.situacao||'',
+    (i.crs||[]).join(', '), i.n, i.cls.tempNote || (i.rec?'':'não localizado na base de servidores') ]); });
+  var wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:22},{wch:32},{wch:14},{wch:13},{wch:16},{wch:22},{wch:10},{wch:12},{wch:26},{wch:16},{wch:7},{wch:44}];
+  ws['!autofilter']={ref:'A1:L'+aoa.length};
+  XLSX.utils.book_append_sheet(wb,ws,'Nao localizados');
+  XLSX.writeFile(wb,'nao_localizados_esocial_'+((inxCompTxt||'').replace(/[\/ ,]/g,'-')||'lista')+'.xlsx');
+}
+
+function inxClear(){
+  inxItems=[]; inxSearchT=''; inxFilter=new Set(); inxCompTxt=''; inxFileName='';
+  $('#inxStatus').textContent='LISTA_ERGONESO_INEXIST (.csv / .xlsx) · arraste ou clique';
+  $('#inxComp').textContent='—'; if($('#inxSearch')) $('#inxSearch').value='';
+  $('#inxResults').classList.add('hidden'); $('#inxPlaceholder').classList.remove('hidden');
+}
+
+(function(){
+  var dz=$('#inxDrop'), f=$('#inxFile'); if(!dz||!f) return;
+  dz.addEventListener('click',function(){ f.click(); });
+  f.addEventListener('change',function(e){ var x=e.target.files[0]; if(x) inxRead(x); e.target.value=''; });
+  ['dragover','dragenter'].forEach(function(ev){ dz.addEventListener(ev,function(e){ e.preventDefault(); dz.classList.add('over'); }); });
+  ['dragleave','drop'].forEach(function(ev){ dz.addEventListener(ev,function(e){ e.preventDefault(); dz.classList.remove('over'); }); });
+  dz.addEventListener('drop',function(e){ var x=e.dataTransfer && e.dataTransfer.files[0]; if(x) inxRead(x); });
+  var s=$('#inxSearch'); if(s) s.addEventListener('input',function(){ inxSearchT=s.value; inxRender(); });
+  var ch=$('#inxChips'); if(ch) ch.addEventListener('click',function(e){ var b=e.target.closest('[data-b]'); if(!b) return;
+    var k=b.getAttribute('data-b');
+    if(!k) inxFilter=new Set(); else { if(inxFilter.has(k)) inxFilter.delete(k); else inxFilter.add(k); }
+    inxRender(); });
+  var ex=$('#inxExport'); if(ex) ex.addEventListener('click',inxExport);
+  var cl=$('#inxClear'); if(cl) cl.addEventListener('click',inxClear);
+})();
+
 /* init */
 /* casca do app: as telas das ferramentas passam a viver DENTRO do centro do menu,
    entao trocar de ferramenta nao redesenha a barra lateral */
 (function(){ var main=document.querySelector('#gateMenu .lm-main'); if(!main) return;
   var wm=document.querySelector('body > .wm'); if(wm) main.appendChild(wm);   // marca d'agua das ferramentas
-  ['tool-comparador','tool-dashboard','tool-3','tool-envio'].forEach(function(id){
+  ['tool-comparador','tool-dashboard','tool-3','tool-envio','tool-inexist'].forEach(function(id){
     var el=document.getElementById(id); if(el) main.appendChild(el); }); })();
 loadRules();
 initTheme();
