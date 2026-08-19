@@ -239,7 +239,7 @@
   .lm-foot-btn.exit{color:#F6B8C4}
   .lm-foot-btn.exit:hover{border-color:#F6B8C4;background:rgba(190,18,60,.30);color:#fff}
   /* centro: marca d'água da PGE + chamada */
-  .lm-main{flex:1 1 auto;min-width:0;height:100%;position:relative;display:flex;align-items:center;justify-content:center;padding:30px;overflow:hidden}
+  .lm-main{flex:1 1 auto;min-width:0;height:100%;position:relative;display:flex;justify-content:center;padding:30px;overflow-y:auto;overflow-x:hidden}
   /* ferramenta aberta: o centro vira a area de conteudo e rola sozinho (a barra lateral nao se mexe) */
   .lm-main.tool{display:block;padding:0;overflow-y:auto;overflow-x:hidden;background:var(--bg)}
   .lm-main.tool .lm-wm,.lm-main.tool .lm-status{display:none}
@@ -303,6 +303,50 @@
   html[data-theme="dark"] .inx-alert{background:rgba(180,83,9,.18);border-color:rgba(245,200,107,.42);color:#F3CE8C}
   html[data-theme="dark"] .inx-alert b{color:#F3CE8C}
   html[data-theme="dark"] .inx-benmsg{background:rgba(180,83,9,.32);color:#F7D9A6}
+  /* resumo da base: sem caixas — os gráficos ficam soltos sobre a tela inicial */
+  .lm-panel{position:relative;z-index:1;width:100%;max-width:1180px;margin:auto}
+  .lmb-title{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#7A8698}
+  .lmb-sub{font-size:15px;color:#3A4759;margin-top:3px;font-variant-numeric:tabular-nums}
+  .lmb-sub b{color:#0B1F3A;font-weight:700}
+  .lmb-k{font-size:11px;letter-spacing:.14em;text-transform:uppercase;color:#7A8698;font-weight:700;margin-bottom:14px}
+  .lmb-charts{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin-top:26px;align-items:start}
+  .lmb-donut{display:flex;align-items:center;gap:22px}
+  .lmb-donut svg{flex:none}
+  .lmb-leg{display:flex;flex-direction:column;gap:3px;min-width:0;font-size:14.5px;flex:1}
+  .lmb-leg .li{display:flex;align-items:center;gap:9px;color:#3A4759;background:none;border:0;font:inherit;
+    padding:5px 7px;border-radius:8px;cursor:pointer;text-align:left;width:100%}
+  .lmb-leg .li:hover{background:rgba(30,90,168,.10)}
+  .lmb-leg .li.on{background:#0B1F3A;color:#fff}
+  .lmb-leg .li.on .lv{color:#fff} .lmb-leg .li.on .lp{color:#AEC2DE}
+  .lmb-leg .sw{width:11px;height:11px;border-radius:3px;flex:none}
+  .lmb-leg .lv{margin-left:auto;font-weight:700;font-size:16px;color:#0B1F3A;font-variant-numeric:tabular-nums}
+  .lmb-leg .lp{color:#98A2B0;font-size:12.5px;font-variant-numeric:tabular-nums;width:42px;text-align:right}
+  .lmb-cat{margin-top:30px}
+  .lmb-bar{display:flex;align-items:center;gap:12px;margin:2px 0;font-size:14px;width:100%;
+    background:none;border:0;font:inherit;padding:5px 7px;border-radius:8px;cursor:pointer;text-align:left}
+  .lmb-bar:hover{background:rgba(30,90,168,.10)}
+  .lmb-bar.on{background:#0B1F3A}
+  .lmb-bar.on .lbl,.lmb-bar.on .val{color:#fff}
+  .lmb-bar.on .val span{color:#AEC2DE}
+  .lmb-bar .lbl{width:210px;flex:none;color:#3A4759;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .lmb-bar .track{flex:1;height:20px;background:rgba(216,222,231,.55);border-radius:5px;overflow:hidden;min-width:40px}
+  .lmb-bar .fill{display:block;height:100%;border-radius:5px;min-width:3px}
+  .lmb-bar .val{width:96px;text-align:right;font-weight:700;font-size:16px;color:#0B1F3A;font-variant-numeric:tabular-nums;flex:none}
+  .lmb-bar .val span{font-weight:600;color:#98A2B0;font-size:12.5px}
+  .lmb-note{margin-top:12px;font-size:12px;color:#98A2B0;line-height:1.5}
+  .lmb-filters{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-top:12px}
+  .lmb-fchip{font:inherit;font-size:12px;font-weight:600;padding:5px 11px;border-radius:999px;
+    background:#0B1F3A;border:1px solid #0B1F3A;color:#fff}
+  .lmb-fclear{font:inherit;font-size:12px;font-weight:600;padding:5px 12px;border-radius:999px;cursor:pointer;
+    background:transparent;border:1px dashed #BE123C;color:#BE123C}
+  .lmb-fclear:hover{background:rgba(190,18,60,.08)}
+  .lmb-cols{margin-top:18px;font-size:11px;color:#B3BCC8;line-height:1.5}
+  .lmb-cols b{color:#98A2B0;font-weight:600}
+  .lmb-cols .bad{color:#BE123C;font-weight:600}
+  /* no desktop a 3a coluna fica livre para o quadrado de status flutuante */
+  @media(min-width:901px){ .lmb-charts{grid-template-columns:1fr 1fr 236px} }
+  @media(max-width:900px){ .lmb-charts{grid-template-columns:1fr;gap:22px} }
+  @media(max-width:640px){ .lmb-bar .lbl{width:130px} .lmb-bar .val{width:80px} }
   /* ===== telas / toolbar ===== */
   .screen{display:none}
   .toolbar{display:flex;align-items:center;gap:14px;margin-bottom:18px;background:var(--surface);border:1px solid var(--line);border-radius:8px;padding:8px 12px}
@@ -649,6 +693,7 @@
             <button type="button" class="lm-mini" data-cloud-btn data-cloud-nolabel>&#9729; Entrar na nuvem</button>
           </div>
         </section>
+        <div class="lm-panel" id="menuPanel"></div>
       </main>
     </div>
   </div>
@@ -853,7 +898,7 @@
       <h1>Confronto eSocial × ERGON</h1>
     </div>
     <div class="basebox">
-      Base de servidores: <b id="baseCount">—</b> vínculos<br>
+      Base de servidores: <b id="baseCount">—</b> vínculos<span id="basePeople"></span><br>
       <span id="baseNote">embutida na ferramenta</span><br>
       <button id="btnBase">Atualizar base de servidores</button>
       <button id="btnRules">⚙ Ajustes</button>
@@ -1309,6 +1354,8 @@ function parseCSV(text){
 /* ---------- base index ---------- */
 let baseRecs = BASE_DATA;
 let byMat = new Map(), byCpf = new Map();
+// cabeçalhos que caíram nas colunas E/L/M/O da planilha (para conferência na tela inicial)
+let baseCols=null; try{ baseCols=JSON.parse(localStorage.getItem('esocial_base_cols')||'null'); }catch(e){}
 const BASE_STORAGE_KEY='esocial_base_v1';
 function saveBaseToStorage(){
   try{ if(window.indexedDB) baseIdbSet('baseRecs', baseRecs); }catch(e){}
@@ -1319,13 +1366,21 @@ function loadBaseFromStorage(){
   return false;
 }
 function updateBaseUI(fromStorage){
-  $('#baseCount').textContent = baseRecs.length.toLocaleString('pt-BR');
+  setBaseCountUI();
   if(!baseRecs.length){
     $('#baseNote').innerHTML='⚠ <b style="color:var(--warn)">carregue a base de servidores</b>';
     $('#btnBase').textContent='Carregar base de servidores';
   }else if(fromStorage){
     $('#baseNote').textContent='base salva neste navegador';
   }
+}
+/* a base tem uma linha por VÍNCULO; a tela inicial conta PESSOAS (CPF distinto).
+   mostrar as duas medidas aqui evita a leitura de que os números se contradizem. */
+function setBaseCountUI(){
+  var c=$('#baseCount'); if(c) c.textContent=baseRecs.length.toLocaleString('pt-BR');
+  var p=$('#basePeople');
+  if(p) p.innerHTML = (baseRecs.length && byCpf && byCpf.size)
+    ? (' &middot; <b>'+byCpf.size.toLocaleString('pt-BR')+'</b> servidores') : '';
 }
 function indexBase(){
   byMat.clear(); byCpf.clear();
@@ -1335,7 +1390,7 @@ function indexBase(){
     const cpf = padCpf(r.CPF);
     if(cpf){ if(!byCpf.has(cpf)) byCpf.set(cpf,[]); byCpf.get(cpf).push(r); }
   }
-  $('#baseCount').textContent = baseRecs.length.toLocaleString('pt-BR');
+  setBaseCountUI();
 }
 
 /* ---------- base compartilhada: IndexedDB (não estoura como localStorage) + status no menu ---------- */
@@ -1359,6 +1414,7 @@ function updateMenuBaseUI(){
     if(clr) clr.classList.add('hidden');
     if(btn) btn.textContent='Carregar base';
   }
+  if(typeof renderMenuBase==='function') renderMenuBase();
 }
 function loadBaseAsync(){
   if(!window.indexedDB) return;
@@ -1366,10 +1422,22 @@ function loadBaseAsync(){
 }
 function ingestBase(rows){
   if(!rows||!rows.length || !('CPF' in rows[0])){ alert('Base inválida: não encontrei a coluna CPF.'); return false; }
+  // colunas por POSIÇÃO na planilha (E=categoria, L=vacância, M=aposentadoria, O=admissão).
+  // guardamos o nome do cabeçalho que caiu em cada letra para conferência na tela inicial.
+  var keys=Object.keys(rows[0]);
+  var colE=keys[4]||'', colL=keys[11]||'', colM=keys[12]||'', colO=keys[14]||'';
+  var kForm=('FORMAVAC' in rows[0])?'FORMAVAC':colL, kApos=('DTAPOSENT' in rows[0])?'DTAPOSENT':colM;
+  var aviso='';
+  if(colL && kForm!==colL) aviso='Atenção: a coluna L é "'+colL+'", mas estou usando "'+kForm+'" como motivo de vacância.';
+  else if(colM && kApos!==colM) aviso='Atenção: a coluna M é "'+colM+'", mas estou usando "'+kApos+'" como data de aposentadoria.';
+  baseCols={E:colE,L:colL,M:colM,O:colO,form:kForm,apos:kApos,aviso:aviso};
+  try{ localStorage.setItem('esocial_base_cols',JSON.stringify(baseCols)); }catch(e){}
   baseRecs = rows.map(function(r){ return {
     NUMFUNC:r.NUMFUNC||'',NUMVINC:r.NUMVINC||'',CPF:padCpf(r.CPF),NOME:r.NOME||'',CARGO:r.CARGO||'',
     LOTACAO:r.LOTACAO||'',TIPOVINC:r.TIPOVINC||'',PLANO_PREVIDENCIARIO:r.PLANO_PREVIDENCIARIO||'',
-    DTAPOSENT:r.DTAPOSENT||'',TIPOAPOS:r.TIPOAPOS||'',FORMAVAC:r.FORMAVAC||'',CATEGORIA:r.CATEGORIA||'',SITUACAO:r.SITUACAO||''
+    DTAPOSENT:r[kApos]||r.DTAPOSENT||'',TIPOAPOS:r.TIPOAPOS||'',FORMAVAC:r[kForm]||r.FORMAVAC||'',
+    CATEGORIA:r.CATEGORIA||'',SITUACAO:r.SITUACAO||'',
+    CATEG_E:(colE?(r[colE]||''):(r.CATEGORIA||'')), DTADM:(colO?(r[colO]||''):'')
   }; });
   indexBase(); saveBaseToStorage(); updateBaseUI(true); updateMenuBaseUI();
   return true;
@@ -3094,6 +3162,132 @@ function inxClear(){
     inxRender(); });
   var ex=$('#inxExport'); if(ex) ex.addEventListener('click',inxExport);
   var cl=$('#inxClear'); if(cl) cl.addEventListener('click',inxClear);
+})();
+
+/* ---------- resumo da base na tela inicial (gráficos do menu) ---------- */
+var lmbF={sit:new Set(), reg:new Set(), cat:new Set()};
+function lmbNorm(s){ return String(s==null?'':s).toUpperCase()
+  .replace(/[ÁÀÂÃÄ]/g,'A').replace(/[ÉÈÊË]/g,'E').replace(/[ÍÌÎÏ]/g,'I')
+  .replace(/[ÓÒÔÕÖ]/g,'O').replace(/[ÚÙÛÜ]/g,'U').replace(/Ç/g,'C').trim(); }
+function lmbPct(v,t){ return t? (v/t*100) : 0; }
+function lmbEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
+function lmbFilled(v){ return String(v==null?'':v).trim()!==''; }
+
+/* regras de situação (definidas pelo usuário):
+   FORMAVAC preenchido  -> falecido (FALECIMENTO) ou vacância (demais motivos)
+   sem FORMAVAC + data de aposentadoria -> inativo
+   sem FORMAVAC + data de admissão      -> ativo                                  */
+const LMB_SIT={FALECIDO:{label:'Falecidos',color:'#BE123C'}, INATIVO:{label:'Inativos',color:'#98A2B0'},
+               ATIVO:{label:'Ativos',color:'#1E5AA8'}, VACANCIA:{label:'Vacância (outros motivos)',color:'#B45309'},
+               ND:{label:'Não classificado',color:'#D8DEE7'}};
+const LMB_REG={RPPS:{label:'RPPS',color:'#1E5AA8'}, RGPS:{label:'RGPS',color:'#0F9D58'}, ND:{label:'Não informado',color:'#D8DEE7'}};
+const LMB_PAL=['#1E5AA8','#4C8BD9','#7C5CD6','#0F9D58','#B45309','#0E7490','#BE123C','#6B7280','#8B5CF6','#0891B2'];
+function lmbSitOf(r){
+  var fv=lmbNorm(r.FORMAVAC);
+  if(fv) return fv.indexOf('FALEC')>=0 ? 'FALECIDO' : 'VACANCIA';
+  if(lmbFilled(r.DTAPOSENT)) return 'INATIVO';
+  if(lmbFilled(r.DTADM)) return 'ATIVO';
+  return 'ND';
+}
+function lmbRegOf(r){ var p=lmbNorm(r.PLANO_PREVIDENCIARIO);
+  if(p.indexOf('RGPS')>=0) return 'RGPS';
+  if(p.indexOf('RPPS')>=0 || p.indexOf('RIOPREV')>=0) return 'RPPS';
+  return 'ND'; }
+function lmbCatOf(r){ var c=String(r.CATEG_E==null?'':r.CATEG_E).trim(); if(!c) c=String(r.CATEGORIA||'').trim(); return c||'(sem categoria)'; }
+function lmbMatch(r){
+  return (!lmbF.sit.size || lmbF.sit.has(lmbSitOf(r)))
+      && (!lmbF.reg.size || lmbF.reg.has(lmbRegOf(r)))
+      && (!lmbF.cat.size || lmbF.cat.has(lmbCatOf(r)));
+}
+function lmbTally(recs,fn){ var m=new Map(); recs.forEach(function(r){ var k=fn(r); m.set(k,(m.get(k)||0)+1); }); return m; }
+
+function lmbDonut(segs){
+  var total=segs.reduce(function(a,s){return a+(s.value||0);},0)||1, acc=0, arcs='';
+  segs.forEach(function(s){ var len=(s.value||0)/total*100;
+    if(len>0.01){ arcs+='<circle cx="21" cy="21" r="15.915" fill="none" stroke="'+s.color+'" stroke-width="6" stroke-dasharray="'+len.toFixed(2)+' '+(100-len).toFixed(2)+'" stroke-dashoffset="'+((125-acc)%100).toFixed(2)+'"></circle>'; }
+    acc+=len; });
+  return '<svg width="190" height="190" viewBox="0 0 42 42" aria-hidden="true">'+
+    '<circle cx="21" cy="21" r="15.915" fill="none" stroke="rgba(237,240,244,.9)" stroke-width="6"></circle>'+arcs+
+    '<text x="21" y="21.4" text-anchor="middle" dominant-baseline="middle" style="font-size:6.4px;font-weight:700;fill:#172033">'+total.toLocaleString('pt-BR')+'</text>'+
+    '<text x="21" y="26.4" text-anchor="middle" style="font-size:2.6px;fill:#7A8698">vínculos</text></svg>';
+}
+function lmbLegend(segs,total,dim){
+  return '<div class="lmb-leg">'+segs.filter(function(s){return s.value>0 || s.on;}).map(function(s){
+    return '<button type="button" class="li'+(s.on?' on':'')+'" data-f="'+dim+'" data-v="'+lmbEsc(s.key)+'">'+
+      '<span class="sw" style="background:'+s.color+'"></span>'+lmbEsc(s.label)+
+      '<span class="lv">'+(s.value||0).toLocaleString('pt-BR')+'</span>'+
+      '<span class="lp">'+lmbPct(s.value,total).toFixed(0)+'%</span></button>';
+  }).join('')+'</div>';
+}
+function lmbBars(rows,total){
+  var max=rows.reduce(function(a,r){return Math.max(a,r.value||0);},0)||1;
+  return rows.map(function(r,i){
+    return '<button type="button" class="lmb-bar'+(r.on?' on':'')+'" data-f="cat" data-v="'+lmbEsc(r.key)+'">'+
+      '<span class="lbl" title="'+lmbEsc(r.label)+'">'+lmbEsc(r.label)+'</span>'+
+      '<span class="track"><i class="fill" style="width:'+Math.max(2,(r.value/max*100)).toFixed(1)+'%;background:'+(r.color||LMB_PAL[i%LMB_PAL.length])+'"></i></span>'+
+      '<span class="val">'+(r.value||0).toLocaleString('pt-BR')+' <span>'+lmbPct(r.value,total).toFixed(0)+'%</span></span></button>';
+  }).join('');
+}
+function lmbToggle(dim,val){
+  var set=lmbF[dim]; if(!set) return;
+  if(set.has(val)) set.delete(val); else set.add(val);
+  renderMenuBase();
+}
+function lmbClearFilters(){ lmbF={sit:new Set(),reg:new Set(),cat:new Set()}; renderMenuBase(); }
+
+function renderMenuBase(){
+  var el=document.getElementById('menuPanel'); if(!el) return;
+  // sem base: nada aparece — a tela inicial fica só com a marca d'água
+  if(!baseRecs.length){ el.innerHTML=''; return; }
+  var recs=baseRecs.filter(lmbMatch), total=recs.length, geral=baseRecs.length;
+  var pessoas=new Set(); recs.forEach(function(r){ if(r.CPF) pessoas.add(r.CPF); });
+  var tSit=lmbTally(recs,lmbSitOf), tReg=lmbTally(recs,lmbRegOf), tCat=lmbTally(recs,lmbCatOf);
+
+  var sit=['ATIVO','INATIVO','FALECIDO','VACANCIA','ND'].map(function(k){
+    return {key:k,label:LMB_SIT[k].label,color:LMB_SIT[k].color,value:tSit.get(k)||0,on:lmbF.sit.has(k)}; });
+  var reg=['RPPS','RGPS','ND'].map(function(k){
+    return {key:k,label:LMB_REG[k].label,color:LMB_REG[k].color,value:tReg.get(k)||0,on:lmbF.reg.has(k)}; });
+  var catAll=Array.from(tCat.entries()).sort(function(a,b){return b[1]-a[1];});
+  lmbF.cat.forEach(function(v){ if(!tCat.has(v)) catAll.push([v,0]); });
+  var cat=catAll.slice(0,10).map(function(e,i){ return {key:e[0],label:e[0],value:e[1],on:lmbF.cat.has(e[0]),color:LMB_PAL[i%LMB_PAL.length]}; });
+  var resto=catAll.length>10 ? catAll.slice(10).reduce(function(a,e){return a+e[1];},0) : 0;
+
+  var nF=lmbF.sit.size+lmbF.reg.size+lmbF.cat.size, chips='';
+  if(nF){
+    var mk=function(dim,v){ var lab = dim==='sit'?LMB_SIT[v].label : dim==='reg'?LMB_REG[v].label : v;
+      return '<span class="lmb-fchip">'+lmbEsc(lab)+'</span>'; };
+    lmbF.sit.forEach(function(v){ chips+=mk('sit',v); });
+    lmbF.reg.forEach(function(v){ chips+=mk('reg',v); });
+    lmbF.cat.forEach(function(v){ chips+=mk('cat',v); });
+    chips='<div class="lmb-filters">'+chips+'<button type="button" class="lmb-fclear" data-f="clear">Limpar filtros</button></div>';
+  }
+
+  var bc=(typeof baseCols==='object'&&baseCols)?baseCols:null;
+  var colsTxt = bc && (bc.E||bc.O)
+    ? '<div class="lmb-cols">Colunas lidas &mdash; <b>categoria</b>: E ('+lmbEsc(bc.E||'?')+') &middot; <b>vacância</b>: L ('+lmbEsc(bc.L||'?')+') &middot; <b>aposentadoria</b>: M ('+lmbEsc(bc.M||'?')+') &middot; <b>admissão</b>: O ('+lmbEsc(bc.O||'?')+')'+(bc.aviso?' <span class="bad">'+lmbEsc(bc.aviso)+'</span>':'')+'</div>'
+    : '<div class="lmb-cols"><span class="bad">Base carregada antes desta versão</span> &mdash; recarregue o arquivo para usar as colunas E e O.</div>';
+
+  el.innerHTML=
+    '<div class="lmb-title">Base de servidores</div>'+
+    '<div class="lmb-sub">'+(nF?('<b>'+total.toLocaleString('pt-BR')+'</b> de '+geral.toLocaleString('pt-BR')+' vínculos'):('<b>'+total.toLocaleString('pt-BR')+'</b> vínculos'))+
+      ' &middot; <b>'+pessoas.size.toLocaleString('pt-BR')+'</b> servidores</div>'+
+    chips+
+    '<div class="lmb-charts">'+
+      '<div><div class="lmb-k">Situação</div><div class="lmb-donut">'+lmbDonut(sit)+lmbLegend(sit,total,'sit')+'</div></div>'+
+      '<div><div class="lmb-k">Regime previdenciário</div><div class="lmb-donut">'+lmbDonut(reg)+lmbLegend(reg,total,'reg')+'</div></div>'+
+    '</div>'+
+    '<div class="lmb-cat"><div class="lmb-k">Categoria &middot; coluna E</div>'+lmbBars(cat,total)+
+      (resto?'<div class="lmb-note">+ '+resto.toLocaleString('pt-BR')+' vínculo(s) em '+(catAll.length-10)+' outra(s) categoria(s).</div>':'')+
+    '</div>'+
+    colsTxt;
+}
+(function(){
+  document.addEventListener('click',function(e){
+    var b=e.target.closest('#menuPanel [data-f]'); if(!b) return;
+    e.preventDefault();
+    var dim=b.getAttribute('data-f');
+    if(dim==='clear') lmbClearFilters(); else lmbToggle(dim,b.getAttribute('data-v'));
+  });
 })();
 
 /* init */
