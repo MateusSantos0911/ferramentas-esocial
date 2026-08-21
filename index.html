@@ -673,6 +673,7 @@
         </nav>
         <div class="lm-foot">
           <button type="button" class="lm-foot-btn" data-theme-toggle>&#127769; Tema escuro</button>
+          <button type="button" class="lm-foot-btn hidden" id="lmPwBtn">Alterar senha</button>
           <button type="button" class="lm-foot-btn exit" onclick="window.__gateLogout&&window.__gateLogout()">Sair</button>
         </div>
       </aside>
@@ -2904,6 +2905,8 @@ var Cloud=(function(){
       if(!n) n=String(user.email||'').split('@')[0].replace(/[._\-]+/g,' ').replace(/\d+/g,' ').trim();
       n=(n.split(/\s+/)[0]||''); return n?n.charAt(0).toUpperCase()+n.slice(1):''; },
     onChange:function(f){subs.push(f);}, signIn:function(e,p){return client.auth.signInWithPassword({email:e,password:p});},
+    updatePassword:function(p){ return client? client.auth.updateUser({password:p})
+      : Promise.resolve({error:{message:'Nuvem indisponível neste navegador.'}}); },
     signOut:function(){return client?client.auth.signOut():Promise.resolve();}, from:function(t){return client.from(t);} };
 })();
 
@@ -2983,12 +2986,14 @@ function updateCloudBtns(){ document.querySelectorAll('[data-cloud-btn]').forEac
   if(Cloud.on()){ b.textContent='☁ '+Cloud.email(); b.classList.add('on'); b.title='Conectado à nuvem — clique para sair'; }
   else { b.textContent='☁ Nuvem'; b.classList.remove('on'); b.title='Entrar para sincronizar'; } }); }
 function updateMenuCloudUI(){ var nm=document.getElementById('menuUserName'); if(!nm) return;
-  var dot=document.getElementById('menuUserDot'), row=document.getElementById('menuCloudRow');
+  var dot=document.getElementById('menuUserDot'), row=document.getElementById('menuCloudRow'), pw=document.getElementById('lmPwBtn');
   if(window.Cloud && Cloud.on && Cloud.on()){
     nm.textContent=Cloud.name()||Cloud.email(); nm.title=Cloud.email();
-    if(dot) dot.classList.add('on'); if(row) row.classList.add('hidden'); }
+    if(dot) dot.classList.add('on'); if(row) row.classList.add('hidden');
+    if(pw) pw.classList.remove('hidden'); }            // trocar senha exige sessão na nuvem
   else { nm.textContent='Acesso local'; nm.title='Sem sessão na nuvem';
-    if(dot) dot.classList.remove('on'); if(row) row.classList.remove('hidden'); } }
+    if(dot) dot.classList.remove('on'); if(row) row.classList.remove('hidden');
+    if(pw) pw.classList.add('hidden'); } }
 function initCloud(){
   // o botao da nuvem agora vive no menu (tela 2), nao mais dentro de cada ferramenta
   document.addEventListener('click',function(e){ var b=e.target.closest('[data-cloud-btn]'); if(b){ e.preventDefault(); openCloudModal(); } });
@@ -3289,6 +3294,55 @@ function renderMenuBase(){
     if(dim==='clear') lmbClearFilters(); else lmbToggle(dim,b.getAttribute('data-v'));
   });
 })();
+
+/* ---------- trocar a própria senha (Supabase) ---------- */
+function pwModalEl(){
+  var m=document.getElementById('pwModal'); if(m) return m;
+  cloudInjectCSS();
+  m=document.createElement('div'); m.id='pwModal'; m.className='cloud-modal hidden';
+  m.innerHTML='<div class="cloud-box"><button class="cloud-x" type="button" aria-label="Fechar">✕</button>'+
+    '<div class="cloud-h">Alterar senha</div>'+
+    '<p class="cloud-sub">Vale para o seu login no app. Mínimo de 8 caracteres. Depois de salvar, use a nova senha nos próximos acessos.</p>'+
+    '<form id="pwForm" autocomplete="off">'+
+    '<input type="password" id="pwNew" placeholder="nova senha" autocomplete="new-password">'+
+    '<input type="password" id="pwNew2" placeholder="repita a nova senha" autocomplete="new-password">'+
+    '<div id="pwErr" class="cloud-err"></div>'+
+    '<button type="submit" class="cloud-go">Salvar nova senha</button></form></div>';
+  document.body.appendChild(m);   // no body: fica acima do gate (mesmo z-index, depois no DOM)
+  m.addEventListener('click',function(e){ if(e.target===m||e.target.closest('.cloud-x')) closePwModal(); });
+  m.querySelector('#pwForm').addEventListener('submit',async function(e){
+    e.preventDefault();
+    var err=m.querySelector('#pwErr'), btn=m.querySelector('.cloud-go');
+    var a=m.querySelector('#pwNew').value, b=m.querySelector('#pwNew2').value;
+    err.textContent='';
+    if(a.length<8){ err.textContent='Use pelo menos 8 caracteres.'; return; }
+    if(a!==b){ err.textContent='As duas senhas não são iguais.'; return; }
+    btn.disabled=true; var rot=btn.textContent; btn.textContent='Salvando…';
+    try{
+      var r=await Cloud.updatePassword(a);
+      if(r && r.error){
+        var msg=String(r.error.message||'');
+        if(/reauth/i.test(msg)) err.textContent='O projeto exige reautenticação para trocar a senha: saia, entre de novo e repita.';
+        else if(/different|same/i.test(msg)) err.textContent='A nova senha precisa ser diferente da atual.';
+        else if(/least|short|6 char/i.test(msg)) err.textContent='Senha muito curta para a regra do servidor.';
+        else err.textContent='Não consegui alterar: '+msg;
+      }else{
+        m.querySelector('#pwNew').value=''; m.querySelector('#pwNew2').value='';
+        closePwModal();
+        alert('Senha alterada. Use a nova senha no próximo acesso.');
+      }
+    }catch(x){ err.textContent='Falha de conexão ao alterar a senha.'; }
+    finally{ btn.disabled=false; btn.textContent=rot; }
+  });
+  return m;
+}
+function openPwModal(){
+  if(!(window.Cloud && Cloud.on && Cloud.on())){ alert('Para trocar a senha, entre com e-mail e senha (o acesso local pela senha mestra não tem conta na nuvem).'); return; }
+  var m=pwModalEl(); m.classList.remove('hidden');
+  setTimeout(function(){ var f=m.querySelector('#pwNew'); if(f) f.focus(); },30);
+}
+function closePwModal(){ var m=document.getElementById('pwModal'); if(m) m.classList.add('hidden'); }
+document.addEventListener('click',function(e){ if(e.target.closest('#lmPwBtn')){ e.preventDefault(); openPwModal(); } });
 
 /* init */
 /* casca do app: as telas das ferramentas passam a viver DENTRO do centro do menu,
