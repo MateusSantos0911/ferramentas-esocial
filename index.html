@@ -320,7 +320,7 @@
   .lmb-leg .li.on .lv{color:#fff} .lmb-leg .li.on .lp{color:#AEC2DE}
   .lmb-leg .sw{width:11px;height:11px;border-radius:3px;flex:none}
   .lmb-leg .lv{margin-left:auto;font-weight:700;font-size:16px;color:#0B1F3A;font-variant-numeric:tabular-nums}
-  .lmb-leg .lp{color:#98A2B0;font-size:12.5px;font-variant-numeric:tabular-nums;width:42px;text-align:right}
+  .lmb-leg .lp{color:#98A2B0;font-size:12.5px;font-variant-numeric:tabular-nums;width:54px;text-align:right}
   .lmb-cat{margin-top:30px}
   .lmb-bar{display:flex;align-items:center;gap:12px;margin:2px 0;font-size:14px;width:100%;
     background:none;border:0;font:inherit;padding:5px 7px;border-radius:8px;cursor:pointer;text-align:left}
@@ -501,6 +501,9 @@
   .gate-form input::placeholder{color:#98A2B0}
   .gate-form input:focus{border-color:#1E5AA8;box-shadow:0 0 0 3px rgba(30,90,168,.16)}
   .gate-err{color:#BE123C;font-size:13px;min-height:18px;margin:8px 0 10px}
+  .gate-err.ok{color:#0F6B3F}
+  .gate-link{font:inherit;font-size:12.5px;font-weight:600;color:#1E5AA8;background:none;border:0;padding:0 0 7px;cursor:pointer;text-decoration:underline}
+  .gate-link:hover{color:#143F78}
   .gate-hint{font-size:11.5px;color:#98A2B0;margin:14px 0 0;line-height:1.5}
   .gate-btn{width:100%;padding:11px 14px;border:1px solid #1E5AA8;border-radius:7px;cursor:pointer;
     font-size:15px;font-weight:600;font-family:inherit;color:#fff;background:#1E5AA8;transition:background .12s}
@@ -634,7 +637,7 @@
         <input id="__gatePw" type="password" autocomplete="current-password" placeholder="Digite sua senha">
         <div class="gate-err" id="__gateErr" role="alert" aria-live="polite">&nbsp;</div>
         <button type="submit" class="gate-btn">Entrar</button>
-        <p class="gate-hint">Sem conex&atilde;o com a nuvem? Deixe o e-mail em branco e use a senha mestra para acesso local.</p>
+        <p class="gate-hint"><button type="button" class="gate-link" id="__gateForgot">Esqueci minha senha</button><br>Sem conex&atilde;o com a nuvem? Deixe o e-mail em branco e use a senha mestra para acesso local.</p>
       </div>
     </div>
   </form>
@@ -2896,9 +2899,10 @@ var Cloud=(function(){
   var client=null,user=null,subs=[];
   function ok(){ return !!(window.supabase&&window.supabase.createClient); }
   function init(){ if(client||!ok())return; try{client=window.supabase.createClient(URL_,ANON);}catch(e){return;}
-    client.auth.getSession().then(function(r){ user=(r&&r.data&&r.data.session)?r.data.session.user:null; emit(); });
-    client.auth.onAuthStateChange(function(_e,s){ user=s?s.user:null; emit(); }); }
-  function emit(){ subs.forEach(function(f){ try{f(user);}catch(e){} }); }
+    client.auth.getSession().then(function(r){ user=(r&&r.data&&r.data.session)?r.data.session.user:null; emit('INITIAL'); });
+    // o evento importa: PASSWORD_RECOVERY chega quando o usuario volta pelo link do e-mail
+    client.auth.onAuthStateChange(function(ev,s){ user=s?s.user:null; emit(ev); }); }
+  function emit(ev){ subs.forEach(function(f){ try{f(user,ev);}catch(e){} }); }
   return { init:init, ready:ok, on:function(){return !!user;}, email:function(){return user?user.email:'';},
     name:function(){ if(!user) return ''; var md=user.user_metadata||{};
       var n=String(md.full_name||md.name||md.nome||'').trim();
@@ -2906,6 +2910,8 @@ var Cloud=(function(){
       n=(n.split(/\s+/)[0]||''); return n?n.charAt(0).toUpperCase()+n.slice(1):''; },
     onChange:function(f){subs.push(f);}, signIn:function(e,p){return client.auth.signInWithPassword({email:e,password:p});},
     updatePassword:function(p){ return client? client.auth.updateUser({password:p})
+      : Promise.resolve({error:{message:'Nuvem indisponível neste navegador.'}}); },
+    resetPassword:function(e,redir){ return client? client.auth.resetPasswordForEmail(e,{redirectTo:redir})
       : Promise.resolve({error:{message:'Nuvem indisponível neste navegador.'}}); },
     signOut:function(){return client?client.auth.signOut():Promise.resolve();}, from:function(t){return client.from(t);} };
 })();
@@ -2999,8 +3005,10 @@ function initCloud(){
   document.addEventListener('click',function(e){ var b=e.target.closest('[data-cloud-btn]'); if(b){ e.preventDefault(); openCloudModal(); } });
   if(!(window.Cloud && Cloud.ready && Cloud.ready())){ updateCloudBtns(); updateMenuCloudUI(); return; }
   Cloud.init();
-  Cloud.onChange(function(user){
+  Cloud.onChange(function(user,ev){
     updateCloudBtns(); updateMenuCloudUI();
+    // voltou pelo link de redefinicao: exige a nova senha antes de liberar o app
+    if(ev==='PASSWORD_RECOVERY'){ openPwModal(true); return; }
     if(user && window.__gateAuthOk) window.__gateAuthOk();  // login unico: sessao da nuvem libera o menu
     dshCloudSync();
   });
@@ -3175,6 +3183,12 @@ function lmbNorm(s){ return String(s==null?'':s).toUpperCase()
   .replace(/[ÁÀÂÃÄ]/g,'A').replace(/[ÉÈÊË]/g,'E').replace(/[ÍÌÎÏ]/g,'I')
   .replace(/[ÓÒÔÕÖ]/g,'O').replace(/[ÚÙÛÜ]/g,'U').replace(/Ç/g,'C').trim(); }
 function lmbPct(v,t){ return t? (v/t*100) : 0; }
+// abaixo de 10% mostra uma casa decimal — senao categoria pequena (9 de 3.149) virava "0%"
+function lmbPctTxt(v,t){ var p=lmbPct(v,t);
+  if(p<=0) return '0%';
+  if(p<0.1) return '<0,1%';
+  if(p<10) return p.toFixed(1).replace('.',',')+'%';
+  return Math.round(p)+'%'; }
 function lmbEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 function lmbFilled(v){ return String(v==null?'':v).trim()!==''; }
 
@@ -3221,7 +3235,7 @@ function lmbLegend(segs,total,dim){
     return '<button type="button" class="li'+(s.on?' on':'')+'" data-f="'+dim+'" data-v="'+lmbEsc(s.key)+'">'+
       '<span class="sw" style="background:'+s.color+'"></span>'+lmbEsc(s.label)+
       '<span class="lv">'+(s.value||0).toLocaleString('pt-BR')+'</span>'+
-      '<span class="lp">'+lmbPct(s.value,total).toFixed(0)+'%</span></button>';
+      '<span class="lp">'+lmbPctTxt(s.value,total)+'</span></button>';
   }).join('')+'</div>';
 }
 function lmbBars(rows,total){
@@ -3230,7 +3244,7 @@ function lmbBars(rows,total){
     return '<button type="button" class="lmb-bar'+(r.on?' on':'')+'" data-f="cat" data-v="'+lmbEsc(r.key)+'">'+
       '<span class="lbl" title="'+lmbEsc(r.label)+'">'+lmbEsc(r.label)+'</span>'+
       '<span class="track"><i class="fill" style="width:'+Math.max(2,(r.value/max*100)).toFixed(1)+'%;background:'+(r.color||LMB_PAL[i%LMB_PAL.length])+'"></i></span>'+
-      '<span class="val">'+(r.value||0).toLocaleString('pt-BR')+' <span>'+lmbPct(r.value,total).toFixed(0)+'%</span></span></button>';
+      '<span class="val">'+(r.value||0).toLocaleString('pt-BR')+' <span>'+lmbPctTxt(r.value,total)+'</span></span></button>';
   }).join('');
 }
 function lmbToggle(dim,val){
@@ -3309,7 +3323,9 @@ function pwModalEl(){
     '<div id="pwErr" class="cloud-err"></div>'+
     '<button type="submit" class="cloud-go">Salvar nova senha</button></form></div>';
   document.body.appendChild(m);   // no body: fica acima do gate (mesmo z-index, depois no DOM)
-  m.addEventListener('click',function(e){ if(e.target===m||e.target.closest('.cloud-x')) closePwModal(); });
+  m.addEventListener('click',function(e){
+    if(m.getAttribute('data-recovery')==='1') return;   // na redefinicao, so sai definindo a senha
+    if(e.target===m||e.target.closest('.cloud-x')) closePwModal(); });
   m.querySelector('#pwForm').addEventListener('submit',async function(e){
     e.preventDefault();
     var err=m.querySelector('#pwErr'), btn=m.querySelector('.cloud-go');
@@ -3328,21 +3344,46 @@ function pwModalEl(){
         else err.textContent='Não consegui alterar: '+msg;
       }else{
         m.querySelector('#pwNew').value=''; m.querySelector('#pwNew2').value='';
+        var rec=(m.getAttribute('data-recovery')==='1');
         closePwModal();
-        alert('Senha alterada. Use a nova senha no próximo acesso.');
+        if(rec){
+          try{ history.replaceState(null,'',location.pathname+location.search); }catch(x2){}  // limpa o token da URL
+          alert('Senha definida. Você já está conectado.');
+          if(window.__gateAuthOk) window.__gateAuthOk();
+        } else alert('Senha alterada. Use a nova senha no próximo acesso.');
       }
     }catch(x){ err.textContent='Falha de conexão ao alterar a senha.'; }
     finally{ btn.disabled=false; btn.textContent=rot; }
   });
   return m;
 }
-function openPwModal(){
-  if(!(window.Cloud && Cloud.on && Cloud.on())){ alert('Para trocar a senha, entre com e-mail e senha (o acesso local pela senha mestra não tem conta na nuvem).'); return; }
+function openPwModal(recovery){
+  if(!recovery && !(window.Cloud && Cloud.on && Cloud.on())){ alert('Para trocar a senha, entre com e-mail e senha (o acesso local pela senha mestra não tem conta na nuvem).'); return; }
   var m=pwModalEl(); m.classList.remove('hidden');
+  m.setAttribute('data-recovery', recovery?'1':'0');
+  m.querySelector('.cloud-h').textContent = recovery ? 'Defina uma nova senha' : 'Alterar senha';
+  m.querySelector('.cloud-sub').textContent = recovery
+    ? 'Você entrou pelo link de redefinição enviado por e-mail. Escolha a nova senha para acessar o app.'
+    : 'Vale para o seu login no app. Mínimo de 8 caracteres. Depois de salvar, use a nova senha nos próximos acessos.';
+  m.querySelector('.cloud-x').style.display = recovery ? 'none' : '';
   setTimeout(function(){ var f=m.querySelector('#pwNew'); if(f) f.focus(); },30);
 }
 function closePwModal(){ var m=document.getElementById('pwModal'); if(m) m.classList.add('hidden'); }
-document.addEventListener('click',function(e){ if(e.target.closest('#lmPwBtn')){ e.preventDefault(); openPwModal(); } });
+document.addEventListener('click',function(e){ if(e.target.closest('#lmPwBtn')){ e.preventDefault(); openPwModal(false); } });
+/* "esqueci minha senha" na tela de login: manda o link de redefinicao para o e-mail digitado */
+document.addEventListener('click',function(e){
+  var a=e.target.closest('#__gateForgot'); if(!a) return; e.preventDefault();
+  var em=document.getElementById('__gateEmail'), err=document.getElementById('__gateErr'); if(!err) return;
+  var email=((em&&em.value)||'').trim();
+  err.classList.remove('ok');
+  if(!email){ err.textContent='Digite seu e-mail no campo acima e clique de novo.'; if(em) em.focus(); return; }
+  if(!(window.Cloud && Cloud.ready && Cloud.ready())){ err.textContent='Nuvem indisponível agora — tente mais tarde.'; return; }
+  err.textContent='Enviando o link…';
+  Promise.resolve(Cloud.resetPassword(email, location.origin+location.pathname)).then(function(r){
+    if(r && r.error){ err.textContent='Não consegui enviar: '+r.error.message; }
+    else { err.classList.add('ok'); err.textContent='Se esse e-mail estiver cadastrado, enviamos um link. Veja a caixa de entrada e o spam.'; }
+  },function(){ err.textContent='Falha ao enviar o e-mail de redefinição.'; });
+});
 
 /* init */
 /* casca do app: as telas das ferramentas passam a viver DENTRO do centro do menu,
