@@ -343,6 +343,33 @@
   .lmb-cols{margin-top:18px;font-size:11px;color:#B3BCC8;line-height:1.5}
   .lmb-cols b{color:#98A2B0;font-weight:600}
   .lmb-cols .bad{color:#BE123C;font-weight:600}
+  /* lista de servidores (drill-down do painel) — sem caixa, no mesmo estilo solto dos gráficos */
+  .lmb-listlink{display:inline-block;font:inherit;font-size:13.5px;font-weight:600;color:#1E5AA8;background:none;border:0;padding:0;margin-top:22px;cursor:pointer;text-decoration:underline}
+  .lmb-listlink:hover{color:#143F78}
+  .lmb-list{margin-top:34px}
+  .lmb-lhead{display:flex;flex-wrap:wrap;align-items:center;gap:10px 14px;margin-bottom:12px}
+  .lmb-lhead .lmb-k{margin:0}
+  .lmb-lcount{font-size:13px;color:#3A4759;font-variant-numeric:tabular-nums}
+  .lmb-lcount b{color:#0B1F3A}
+  .lmb-lsearch{flex:1;min-width:220px;max-width:380px;font:inherit;font-size:13px;padding:8px 12px;border:1px solid #D8DEE7;border-radius:8px;background:rgba(255,255,255,.82);color:#172033}
+  .lmb-lsearch:focus{outline:2px solid #1E5AA8;outline-offset:-1px;border-color:transparent}
+  .lmb-lbtn{font:inherit;font-size:12.5px;font-weight:600;padding:7px 12px;border-radius:8px;cursor:pointer;background:rgba(255,255,255,.82);border:1px solid #D8DEE7;color:#3A4759}
+  .lmb-lbtn:hover{border-color:#1E5AA8;color:#1E5AA8}
+  .lmb-lbtn.pri{background:#1E5AA8;border-color:#1E5AA8;color:#fff}
+  .lmb-lbtn.pri:hover{background:#184A8C;color:#fff}
+  .lmb-lbtn:disabled{opacity:.45;cursor:default}
+  .lmb-twrap{overflow-x:auto;border-top:1px solid rgba(216,222,231,.95)}
+  .lmb-table{width:100%;border-collapse:collapse;font-size:13px}
+  .lmb-table th{text-align:left;font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:#7A8698;font-weight:700;padding:10px;border-bottom:1px solid rgba(216,222,231,.95);white-space:nowrap}
+  .lmb-table td{padding:9px 10px;border-bottom:1px solid rgba(216,222,231,.6);color:#3A4759;vertical-align:top}
+  .lmb-table tbody tr:hover td{background:rgba(30,90,168,.06)}
+  .lmb-table td.nm{color:#0B1F3A;font-weight:600}
+  .lmb-table td.mono{font-family:var(--mono);font-size:12px;white-space:nowrap}
+  .lmb-sit{display:inline-flex;align-items:center;gap:6px;white-space:nowrap}
+  .lmb-sit i{width:8px;height:8px;border-radius:2px;display:inline-block}
+  .lmb-sub2{display:block;font-size:11.5px;color:#98A2B0;margin-top:1px}
+  .lmb-pager{display:flex;flex-wrap:wrap;align-items:center;gap:10px;justify-content:flex-end;margin-top:12px;font-size:12.5px;color:#5F6B7A;font-variant-numeric:tabular-nums}
+  .lmb-empty{padding:18px 10px;color:#7A8698;font-size:13px;border-top:1px solid rgba(216,222,231,.95)}
   /* no desktop a 3a coluna fica livre para o quadrado de status flutuante */
   @media(min-width:901px){ .lmb-charts{grid-template-columns:1fr 1fr 236px} }
   @media(max-width:900px){ .lmb-charts{grid-template-columns:1fr;gap:22px} }
@@ -906,6 +933,7 @@
       <span id="baseNote">embutida na ferramenta</span><br>
       <button id="btnBase">Atualizar base de servidores</button>
       <button id="btnRules">⚙ Ajustes</button>
+      <button id="cmpClear">Limpar dados</button>
       <input type="file" id="fileBase" accept=".csv" class="hidden">
     </div>
   </header>
@@ -2007,6 +2035,17 @@ function clearDivergences(){
   if(window.__appScrollTop) window.__appScrollTop(true); else window.scrollTo({top:0,behavior:'smooth'});
 }
 $('#btnClear').addEventListener('click',clearDivergences);
+/* limpa TUDO que foi importado nesta ferramenta: divergências + honorários.
+   a base de servidores nao entra — ela e compartilhada com as outras ferramentas. */
+function cmpClearAll(){
+  var temAlgo = (typeof processed!=='undefined' && processed.length) || honorLoaded;
+  if(temAlgo && !confirm('Limpar os arquivos carregados nesta ferramenta (divergências e honorários)?\n\nA base de servidores continua carregada.')) return;
+  var hc=$('#btnHonorClear');
+  if(honorLoaded && hc) hc.click();          // reusa a limpeza de honorarios que ja existia
+  clearDivergences();
+  var fh=$('#fileHonor'); if(fh) fh.value='';
+}
+$('#cmpClear').addEventListener('click',cmpClearAll);
 
 /* honorários wiring */
 function handleHonorFile(file){
@@ -3250,14 +3289,17 @@ function lmbBars(rows,total){
 function lmbToggle(dim,val){
   var set=lmbF[dim]; if(!set) return;
   if(set.has(val)) set.delete(val); else set.add(val);
+  // clicar num gráfico já abre a lista de quem está naquele recorte
+  var abriu=!lmbList.open; lmbList.open=true; lmbList.page=1;
   renderMenuBase();
+  if(abriu) lmbScrollList();
 }
-function lmbClearFilters(){ lmbF={sit:new Set(),reg:new Set(),cat:new Set()}; renderMenuBase(); }
+function lmbClearFilters(){ lmbF={sit:new Set(),reg:new Set(),cat:new Set()}; lmbList.page=1; renderMenuBase(); }
 
 function renderMenuBase(){
   var el=document.getElementById('menuPanel'); if(!el) return;
   // sem base: nada aparece — a tela inicial fica só com a marca d'água
-  if(!baseRecs.length){ el.innerHTML=''; return; }
+  if(!baseRecs.length){ el.innerHTML=''; lmbList.q=''; lmbList.page=1; return; }
   var recs=baseRecs.filter(lmbMatch), total=recs.length, geral=baseRecs.length;
   var pessoas=new Set(); recs.forEach(function(r){ if(r.CPF) pessoas.add(r.CPF); });
   var tSit=lmbTally(recs,lmbSitOf), tReg=lmbTally(recs,lmbRegOf), tCat=lmbTally(recs,lmbCatOf);
@@ -3298,7 +3340,9 @@ function renderMenuBase(){
     '<div class="lmb-cat"><div class="lmb-k">Categoria &middot; coluna E</div>'+lmbBars(cat,total)+
       (resto?'<div class="lmb-note">+ '+resto.toLocaleString('pt-BR')+' vínculo(s) em '+(catAll.length-10)+' outra(s) categoria(s).</div>':'')+
     '</div>'+
+    lmbListSectionHtml()+
     colsTxt;
+  if(lmbList.open) renderMenuListBody();
 }
 (function(){
   document.addEventListener('click',function(e){
@@ -3308,6 +3352,102 @@ function renderMenuBase(){
     if(dim==='clear') lmbClearFilters(); else lmbToggle(dim,b.getAttribute('data-v'));
   });
 })();
+
+/* ---------- lista de servidores do painel (quem está por trás dos números) ---------- */
+var lmbList={open:false, q:'', page:1, per:25};
+function lmbCpfFmt(c){ c=onlyDigits(c); return c.length===11 ? c.slice(0,3)+'.'+c.slice(3,6)+'.'+c.slice(6,9)+'-'+c.slice(9) : (c||'—'); }
+function lmbFilterLabels(){ var a=[];
+  lmbF.sit.forEach(function(v){ a.push(LMB_SIT[v].label); });
+  lmbF.reg.forEach(function(v){ a.push(LMB_REG[v].label); });
+  lmbF.cat.forEach(function(v){ a.push(v); });
+  return a; }
+// mesmos filtros dos gráficos + busca livre; ordenado por nome
+function lmbListRecs(){
+  var q=String(lmbList.q||'').trim(), t=lmbNorm(q), dt=onlyDigits(q);
+  // CPF/matrícula só entram quando a busca é numérica (sem letras) e tem ao menos 3 dígitos:
+  // "maria" não pode casar com tudo, nem o "1" de "teste 1" com todo CPF que tenha um 1
+  var numerica = dt.length>=3 && !/[A-Za-zÀ-ÿ]/.test(q);
+  return baseRecs.filter(lmbMatch).filter(function(r){
+    if(!q) return true;
+    if(lmbNorm(r.NOME).indexOf(t)>=0) return true;
+    if(((r.NUMFUNC||'')+'/'+(r.NUMVINC||'')).indexOf(q)>=0) return true;
+    return !!(numerica && (String(r.CPF||'').indexOf(dt)>=0 || String(r.NUMFUNC||'').indexOf(dt)>=0));
+  }).sort(function(a,b){ return String(a.NOME||'').localeCompare(String(b.NOME||''),'pt-BR'); });
+}
+function renderMenuListBody(){
+  var body=document.getElementById('lmbListBody'); if(!body) return;
+  var recs=lmbListRecs(), n=recs.length, per=lmbList.per, pages=Math.max(1,Math.ceil(n/per));
+  if(lmbList.page>pages) lmbList.page=pages;
+  if(lmbList.page<1) lmbList.page=1;
+  var ini=(lmbList.page-1)*per, fatia=recs.slice(ini,ini+per);
+  var cnt=document.getElementById('lmbListCount'); if(cnt) cnt.innerHTML='<b>'+n.toLocaleString('pt-BR')+'</b> vínculo(s)';
+  var ex=document.getElementById('lmbListExport'); if(ex) ex.disabled=!n;
+  if(!n){ body.innerHTML='<div class="lmb-empty">Nenhum servidor com esses filtros'+(lmbList.q?' e essa busca':'')+'.</div>'; return; }
+  var rows=fatia.map(function(r){
+    var s=lmbSitOf(r), sd=LMB_SIT[s], g=lmbRegOf(r), det='';
+    if(s==='FALECIDO'||s==='VACANCIA') det=r.FORMAVAC||'';
+    else if(s==='INATIVO') det=r.DTAPOSENT?('aposentadoria '+r.DTAPOSENT):'';
+    else if(s==='ATIVO') det=r.DTADM?('admissão '+r.DTADM):'';
+    return '<tr>'+
+      '<td class="nm">'+lmbEsc(r.NOME||'—')+'</td>'+
+      '<td class="mono">'+lmbEsc((r.NUMFUNC||'')+'/'+(r.NUMVINC||''))+'</td>'+
+      '<td class="mono">'+lmbCpfFmt(r.CPF)+'</td>'+
+      '<td>'+lmbEsc(lmbCatOf(r))+'</td>'+
+      '<td><span class="lmb-sit"><i style="background:'+sd.color+'"></i>'+lmbEsc(sd.label)+'</span>'+(det?'<span class="lmb-sub2">'+lmbEsc(det)+'</span>':'')+'</td>'+
+      '<td>'+lmbEsc(LMB_REG[g].label)+(r.PLANO_PREVIDENCIARIO?'<span class="lmb-sub2">'+lmbEsc(r.PLANO_PREVIDENCIARIO)+'</span>':'')+'</td>'+
+    '</tr>';
+  }).join('');
+  body.innerHTML='<div class="lmb-twrap"><table class="lmb-table"><thead><tr>'+
+      '<th>Nome</th><th>Matrícula</th><th>CPF</th><th>Categoria</th><th>Situação</th><th>Regime</th>'+
+    '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
+    '<div class="lmb-pager"><span>'+(ini+1).toLocaleString('pt-BR')+'–'+(ini+fatia.length).toLocaleString('pt-BR')+' de '+n.toLocaleString('pt-BR')+' &middot; pág. '+lmbList.page+'/'+pages+'</span>'+
+      '<button type="button" class="lmb-lbtn" data-l="prev"'+(lmbList.page<=1?' disabled':'')+'>&lsaquo; anterior</button>'+
+      '<button type="button" class="lmb-lbtn" data-l="next"'+(lmbList.page>=pages?' disabled':'')+'>próxima &rsaquo;</button></div>';
+}
+function lmbListSectionHtml(){
+  if(!lmbList.open) return '<button type="button" class="lmb-listlink" data-l="toggle">Ver lista de servidores &rarr;</button>';
+  var fl=lmbFilterLabels();
+  return '<div class="lmb-list" id="lmbListSec">'+
+    '<div class="lmb-lhead">'+
+      '<div class="lmb-k">Servidores &middot; '+lmbEsc(fl.length?fl.join(' + '):'todos os vínculos')+'</div>'+
+      '<span class="lmb-lcount" id="lmbListCount"></span>'+
+      '<input type="search" class="lmb-lsearch" id="lmbListQ" placeholder="Buscar por nome, CPF ou matrícula…" value="'+lmbEsc(lmbList.q)+'">'+
+      '<button type="button" class="lmb-lbtn pri" data-l="export" id="lmbListExport">Exportar .xlsx</button>'+
+      '<button type="button" class="lmb-lbtn" data-l="toggle">Ocultar lista</button>'+
+    '</div><div id="lmbListBody"></div></div>';
+}
+// ao abrir por clique num gráfico, traz a lista para a vista só se ela estiver abaixo da dobra
+function lmbScrollList(){
+  var s=document.getElementById('lmbListSec'), m=document.querySelector('#gateMenu .lm-main'); if(!s||!m) return;
+  if(s.getBoundingClientRect().top > m.getBoundingClientRect().bottom-140) s.scrollIntoView({behavior:'smooth',block:'start'});
+}
+function lmbListExport(){
+  var recs=lmbListRecs(); if(!recs.length) return;
+  var aoa=[['Nome','NUMFUNC','NUMVINC','CPF','Categoria (coluna E)','Tipo de vínculo','Situação','Motivo de vacância',
+            'Data de admissão','Data de aposentadoria','Regime','Plano previdenciário','Lotação','Cargo']];
+  recs.forEach(function(r){ var s=lmbSitOf(r);
+    aoa.push([r.NOME||'',r.NUMFUNC||'',r.NUMVINC||'',r.CPF||'',lmbCatOf(r),r.TIPOVINC||'',LMB_SIT[s].label,r.FORMAVAC||'',
+              r.DTADM||'',r.DTAPOSENT||'',LMB_REG[lmbRegOf(r)].label,r.PLANO_PREVIDENCIARIO||'',r.LOTACAO||'',r.CARGO||'']); });
+  var wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(aoa);
+  ws['!cols']=[{wch:36},{wch:10},{wch:8},{wch:13},{wch:24},{wch:20},{wch:24},{wch:22},{wch:12},{wch:12},{wch:10},{wch:18},{wch:28},{wch:28}];
+  ws['!autofilter']={ref:'A1:N'+aoa.length};
+  XLSX.utils.book_append_sheet(wb,ws,'Servidores');
+  var tag=lmbFilterLabels().join('_').normalize('NFD').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,50)||'todos';
+  XLSX.writeFile(wb,'servidores_'+tag+'.xlsx');
+}
+document.addEventListener('click',function(e){
+  var b=e.target.closest('#menuPanel [data-l]'); if(!b) return;
+  e.preventDefault();
+  var a=b.getAttribute('data-l');
+  if(a==='toggle'){ lmbList.open=!lmbList.open; lmbList.page=1; renderMenuBase(); if(lmbList.open) lmbScrollList(); }
+  else if(a==='prev'){ lmbList.page--; renderMenuListBody(); }
+  else if(a==='next'){ lmbList.page++; renderMenuListBody(); }
+  else if(a==='export'){ lmbListExport(); }
+});
+// a busca só redesenha as linhas — o campo não é recriado, então não perde o foco
+document.addEventListener('input',function(e){
+  if(e.target && e.target.id==='lmbListQ'){ lmbList.q=e.target.value; lmbList.page=1; renderMenuListBody(); }
+});
 
 /* ---------- trocar a própria senha (Supabase) ---------- */
 function pwModalEl(){
