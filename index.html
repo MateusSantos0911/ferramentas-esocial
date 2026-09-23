@@ -33,6 +33,8 @@
   .basebox b{color:var(--ink);font-variant-numeric:tabular-nums}
   .basebox button{margin-top:6px;font:inherit;font-size:12px;background:none;border:1px solid var(--line);color:var(--muted);padding:4px 10px;border-radius:6px;cursor:pointer}
   .basebox button:hover{border-color:var(--ink);color:var(--ink)}
+  .basebox .snap-btn{border-color:var(--action);color:var(--action);font-weight:600}
+  .basebox .snap-btn:hover{background:var(--action);border-color:var(--action);color:#fff}
 
   /* dropzone */
   .drop{background:var(--surface);border:1.5px dashed var(--line);border-radius:8px;padding:18px 20px;text-align:center;cursor:pointer;transition:border-color .12s,background .12s}
@@ -447,7 +449,15 @@
   .card{transition:transform .14s,box-shadow .14s}
   .card:hover{border-color:var(--action)}
   #cards .card{cursor:pointer;user-select:none}
-  #cards .card.sel{outline:2px solid var(--action);outline-offset:1px}
+  #cards .card.sel,#inssCards .card.sel,#inxCards .card.sel{outline:2px solid var(--action);outline-offset:1px}
+  #inssCards .card[data-tab],#inxCards .card[data-b]{cursor:pointer;user-select:none}
+  #inssCards .card[data-tab]:hover,#inxCards .card[data-b]:hover{border-color:var(--action)}
+  td.obs-td{min-width:200px;vertical-align:top}
+  td.obs-td .obs-edit{margin-top:0;max-width:none;min-width:180px}
+  .env-obs{padding:0 14px 10px}
+  .env-obs .obs-edit{max-width:none;margin-top:4px}
+  .inx-row .obs-edit{max-width:none;margin-top:9px}
+  .inss-comp{width:84px;font:inherit;font-size:12px;padding:3px 7px;border:1px solid var(--line);border-radius:6px;background:var(--surface);color:var(--ink);text-align:center}
   html[data-theme="dark"] .card:hover{border-color:var(--action)}
   footer{position:relative;z-index:1}
 
@@ -934,6 +944,7 @@
       <button id="btnBase">Atualizar base de servidores</button>
       <button id="btnRules">⚙ Ajustes</button>
       <button id="cmpClear">Limpar dados</button>
+      <button class="snap-btn" data-snap="confronto" type="button">&#9729; Gravar competência</button>
       <input type="file" id="fileBase" accept=".csv" class="hidden">
     </div>
   </header>
@@ -1113,7 +1124,8 @@
       <div class="eyebrow">PGE-RJ &middot; eSocial &mdash; INSS RGPS &times; DCTFWeb</div>
       <h1>Confer&ecirc;ncia de INSS (RGPS)</h1>
     </div>
-    <div class="basebox"><button id="inssClear">Limpar</button></div>
+    <div class="basebox">Compet&ecirc;ncia: <input id="inssComp" class="inss-comp" placeholder="MM/AAAA" maxlength="7" autocomplete="off"><br>
+      <button id="inssClear">Limpar</button> <button class="snap-btn" data-snap="inss" type="button">&#9729; Gravar competência</button></div>
   </header>
 
   <div class="rules" id="inssParams">
@@ -1148,6 +1160,7 @@
         <button class="chip c1202" data-tab="divBase" aria-pressed="false">Diverg&ecirc;ncia base</button>
         <button class="chip c1207" data-tab="divInss" aria-pressed="false">Diverg&ecirc;ncia INSS</button>
         <button class="chip c1200" data-tab="todosEso" aria-pressed="false">Todos enviados (eSocial)</button>
+        <button class="chip call" data-tab="todosFolha" aria-pressed="false">Todos na folha</button>
       </div>
       <button class="btn-export" id="inssExport">Exportar .xlsx</button>
     </div>
@@ -1214,6 +1227,7 @@
     <div class="basebox">
       Compet&ecirc;ncia: <b id="envComp">&mdash;</b><br>
       <button id="envClear">Limpar</button>
+      <button class="snap-btn" data-snap="envio" type="button">&#9729; Gravar competência</button>
     </div>
   </header>
 
@@ -1246,6 +1260,8 @@
     <div class="controls">
       <input type="search" id="envSearch" placeholder="Buscar por CPF, nome ou matr&iacute;cula&hellip;">
       <div class="chips" id="envTabs">
+        <button class="chip call" data-tab="todos" aria-pressed="false">Todos</button>
+        <button class="chip c1200" data-tab="gerados" aria-pressed="false">Gerados</button>
         <button class="chip cwarn" data-tab="afazer" aria-pressed="true">A enviar</button>
         <button class="chip c1207" data-tab="semjson" aria-pressed="false">Sem JSON</button>
         <button class="chip cjust" data-tab="enviados" aria-pressed="false">Enviados</button>
@@ -1269,6 +1285,7 @@
     <div class="basebox">
       Compet&ecirc;ncia: <b id="inxComp">&mdash;</b><br>
       <button id="inxClear">Limpar</button>
+      <button class="snap-btn" data-snap="inexistentes" type="button">&#9729; Gravar competência</button>
     </div>
   </header>
 
@@ -1624,7 +1641,7 @@ function processDivergences(rows){
       nome: (rec&&rec.NOME) || (any&&any.NOME) || '(nome não informado)',
       cargo: rec&&rec.CARGO || '', lotacao: rec&&rec.LOTACAO || '',
       autoEvento:cls.evento, evento: ovr||cls.evento, manual: !!ovr,
-      status: manualStatus.get(pkey)||'', obs: manualObs.get(pkey)||'',
+      status: manualStatus.get(pkey)||'', obs: manualObs.get(pkey)||obsGet('confronto','-',pkey)||'',
       regime:cls.regime, situacao:cls.situacao, plano:cls.plano, found:cls.found,
       matchBy, baseCpf, cpfMismatch, tempNote:cls.tempNote||'',
       unpaired: !(erg&&eso),
@@ -1733,6 +1750,9 @@ function setManualObs(key, val){
   const p = processed.find(x=>x.key===key);
   if(val && val.trim()){ manualObs.set(key,val); } else { manualObs.delete(key); }
   if(p) p.obs=val||'';
+  // a sessão é substituída quando outro arquivo é carregado; aqui a observação fica guardada
+  // por competência (a chave já traz cpf|matrícula|ano|mês)
+  obsSet('confronto','-',key,val);
   saveSession();  // sem render() para não perder o foco enquanto digita
 }
 function autoGrowObs(el){ if(!el) return; el.style.height='auto'; el.style.height=el.scrollHeight+'px'; }
@@ -2474,7 +2494,8 @@ function envPersonHtml(o){
   return '<div class="env-item'+(o.pend?' pend':'')+(o.enviado?' sent':'')+'">'+
     '<div class="env-row"><div class="env-id"><span class="env-cpf mono">'+o.cpf+'</span> <span class="env-nome">'+(o.nome||'—')+'</span> '+badge+tip+
       '<div class="env-meta">'+((o.mats&&o.mats.length)?o.mats.join(', ')+' · ':'')+(o.categoria||'')+(o.situacao?' · '+o.situacao:'')+'</div></div>'+
-      '<div class="env-act">'+acts+'</div></div>'+reason+'</div>';
+      '<div class="env-act">'+acts+'</div></div>'+reason+
+    '<div class="env-obs">'+obsField('envio',envComp(),o.cpf)+'</div></div>';
 }
 function envRender(){
   var hasData=envFolha.length>0;
@@ -2484,8 +2505,8 @@ function envRender(){
   if(!hasData) return;
   var c=envCompute(), cob=c.esperados?Math.round(c.enviados.length/c.esperados*100):0;
   $('#envCards').innerHTML=
-    '<div class="card etot"><div class="lab">Esperados</div><div class="num">'+c.esperados.toLocaleString('pt-BR')+'</div><div class="meta">'+c.vinculos.toLocaleString('pt-BR')+' vínculos</div></div>'+
-    '<div class="card e1200"><div class="lab">Gerados</div><div class="num">'+c.gerados.toLocaleString('pt-BR')+'</div><div class="meta">têm JSON</div></div>'+
+    '<div class="card etot" data-tab="todos"><div class="lab">Esperados</div><div class="num">'+c.esperados.toLocaleString('pt-BR')+'</div><div class="meta">'+c.vinculos.toLocaleString('pt-BR')+' vínculos</div></div>'+
+    '<div class="card e1200" data-tab="gerados"><div class="lab">Gerados</div><div class="num">'+c.gerados.toLocaleString('pt-BR')+'</div><div class="meta">têm JSON</div></div>'+
     '<div class="card e1207" data-tab="enviados"><div class="lab">Enviados</div><div class="num">'+c.enviados.length.toLocaleString('pt-BR')+'</div><div class="meta">'+cob+'% dos esperados</div></div>'+
     '<div class="card ewarn" data-tab="semjson"><div class="lab">Sem JSON</div><div class="num">'+c.naoGerado.length.toLocaleString('pt-BR')+'</div><div class="meta">na folha, sem evento gerado</div></div>'+
     '<div class="card e1202" data-tab="pend"><div class="lab">Pendentes</div><div class="num">'+c.pend.length.toLocaleString('pt-BR')+'</div><div class="meta">com motivo</div></div>'+
@@ -2496,20 +2517,23 @@ function envRenderList(c){
   var t=envSearch.toLowerCase(), dt=onlyDigits(t), el=$('#envList');
   function match(x){ return !t||(x.nome&&x.nome.toLowerCase().indexOf(t)>=0)||(dt&&x.cpf.indexOf(dt)>=0)||((x.mats||[]).join(' ').indexOf(t)>=0); }
   var isFora=(envTab==='fora'), src;
-  if(envTab==='enviados') src=c.enviados; else if(envTab==='pend') src=c.pend; else if(envTab==='semjson') src=c.naoGerado; else if(isFora) src=c.fora; else src=c.naoEnviado;
+  if(envTab==='todos') src=Array.from(c.folMap.values());
+  else if(envTab==='gerados') src=Array.from(c.folMap.values()).filter(function(o){ return o.gerado; });
+  else if(envTab==='enviados') src=c.enviados; else if(envTab==='pend') src=c.pend; else if(envTab==='semjson') src=c.naoGerado; else if(isFora) src=c.fora; else src=c.naoEnviado;
   var rows = isFora ? c.fora.filter(function(x){return !t||(dt&&x.cpf.indexOf(dt)>=0)||(x.nome&&x.nome.toLowerCase().indexOf(t)>=0);}) : src.filter(match);
   var total=rows.length, pages=Math.max(1,Math.ceil(total/envPageSize));
   if(envPage>pages) envPage=pages; if(envPage<1) envPage=1;
   var start=(envPage-1)*envPageSize, end=Math.min(total,start+envPageSize), pageRows=rows.slice(start,end);
   var bulk = (envTab==='afazer') ? '<div class="env-bulk"><button class="env-bulkbtn" id="envMarkAll">✓ Marcar gerados como enviados</button><span class="env-bulk-note">marca como enviados todos os <b>gerados</b> desta lista (respeita a busca)</span></div>' : '';
   if(!total){
-    var empty = envTab==='enviados'?'Nada marcado como enviado ainda.' : envTab==='pend'?'Nenhuma pendência marcada.' : envTab==='semjson'?'Todos os esperados têm evento gerado 🎉' : isFora?'Nenhum gerado fora da lista de esperados.' : 'Nada a enviar — tudo foi enviado ou marcado como pendente 🎉';
+    var empty = envTab==='todos'?'Nenhum esperado com essa busca.' : envTab==='gerados'?'Nenhum evento gerado ainda.' : envTab==='enviados'?'Nada marcado como enviado ainda.' : envTab==='pend'?'Nenhuma pendência marcada.' : envTab==='semjson'?'Todos os esperados têm evento gerado 🎉' : isFora?'Nenhum gerado fora da lista de esperados.' : 'Nada a enviar — tudo foi enviado ou marcado como pendente 🎉';
     el.innerHTML = bulk + '<div class="dsh-none">'+empty+'</div>'; return;
   }
   var body = isFora
     ? '<table class="dsh-table"><thead><tr><th>CPF</th><th>Nome</th><th>Tipo(s) gerado(s)</th></tr></thead><tbody>'+pageRows.map(function(x){return '<tr><td class="mono">'+x.cpf+'</td><td>'+(x.nome||'<span class="dsh-none">—</span>')+'</td><td>'+x.tipos+'</td></tr>';}).join('')+'</tbody></table>'
     : pageRows.map(function(o){return envPersonHtml(o);}).join('');
   el.innerHTML = bulk + body + envPager(start,end,total,pages);
+  obsGrowIn(el);
 }
 function envPager(start,end,total,pages){
   return '<div class="env-pager">'+
@@ -2803,7 +2827,7 @@ function inssCompute(){
   return {faltaEso:faltaEso,faltaFolha:faltaFolha,divBase:divBase,divInss:divInss,dctf:d,dctfFolha:df};
 }
 function inssRow(lbl,val,ded,saldo){ return '<tr><td class="l">'+lbl+'</td><td>'+fmtBR(val)+'</td><td>'+(ded?fmtBR(ded):'-')+'</td><td>'+fmtBR(saldo)+'</td></tr>'; }
-function inssCard(cls,lab,num,meta){ return '<div class="card '+cls+'"><div class="lab">'+lab+'</div><div class="num">'+(typeof num==='number'?num.toLocaleString('pt-BR'):num)+'</div><div class="meta">'+meta+'</div></div>'; }
+function inssCard(cls,lab,num,meta,tab){ return '<div class="card '+cls+(tab&&tab===inssTab?' sel':'')+'"'+(tab?' data-tab="'+tab+'" title="Clique para ver a lista"':'')+'><div class="lab">'+lab+'</div><div class="num">'+(typeof num==='number'?num.toLocaleString('pt-BR'):num)+'</div><div class="meta">'+meta+'</div></div>'; }
 function inssDctfTable(d,title){
   return '<div class="dsh-panel"><h3>'+title+'</h3>'+
     '<table class="dctf-table"><thead><tr><th class="l">Débito apurado</th><th>Valor</th><th>Ded. (SM)</th><th class="saldo">Saldo</th></tr></thead><tbody>'+
@@ -2838,33 +2862,42 @@ function inssRender(){
     '</div>'+
     inssDiffCard(d,df);
   $('#inssCards').innerHTML=
-    inssCard('etot','CPFs na folha',inssFolha.size,'RGPS')+
-    inssCard('e1202','CPFs no eSocial',inssEso.size,'S-5001')+
-    inssCard('ewarn','Falta no eSocial',c.faltaEso.length,'na folha, sem apuração')+
-    inssCard('eign','Falta na folha',c.faltaFolha.length,'apurado, fora da folha')+
-    inssCard('e1207','Divergências',c.divBase.length+c.divInss.length,c.divBase.length+' base · '+c.divInss.length+' INSS');
+    inssCard('etot','CPFs na folha',inssFolha.size,'RGPS','todosFolha')+
+    inssCard('e1202','CPFs no eSocial',inssEso.size,'S-5001','todosEso')+
+    inssCard('ewarn','Falta no eSocial',c.faltaEso.length,'na folha, sem apuração','faltaEso')+
+    inssCard('eign','Falta na folha',c.faltaFolha.length,'apurado, fora da folha','faltaFolha')+
+    inssCard('e1207','Divergências',c.divBase.length+c.divInss.length,c.divBase.length+' base · '+c.divInss.length+' INSS','divBase');
   inssRenderList(c);
 }
 function inssRenderList(c){
-  var t=inssSearchT.toLowerCase(), dt=onlyDigits(t);
+  var t=inssSearchT.toLowerCase(), dt=onlyDigits(t), comp=inssComp();
+  var ob=function(cpf){ return '<td class="obs-td">'+obsField('inss',comp,cpf)+'</td>'; };
   function filt(arr){ if(!t) return arr; return arr.filter(function(x){ return (dt&&x.cpf.indexOf(dt)>=0)||(x.nome&&x.nome.toLowerCase().indexOf(t)>=0); }); }
   var html;
   if(inssTab==='todosEso'){
     var all=Array.from(inssEso.values()).map(function(e){ var f=inssFolha.get(e.cpf); return {cpf:e.cpf, nome:(f&&f.nome)||'', cat:e.cat, base:e.base, inss:e.inss}; });
     all=filt(all).sort(function(a,b){return a.cpf.localeCompare(b.cpf);});
     html='<div class="dsh-none" style="margin:0 0 8px">'+all.length.toLocaleString('pt-BR')+' CPF(s) enviado(s) ao eSocial (S-5001).</div>'+
-      '<table class="dsh-table"><thead><tr><th>CPF</th><th>Nome</th><th>Categoria</th><th>Base</th><th>INSS (segurado)</th></tr></thead><tbody>'+
-      (all.length?all.map(function(x){return '<tr><td class="mono">'+x.cpf+'</td><td>'+(x.nome||'—')+'</td><td>'+(x.cat||'')+'</td><td>'+fmtBR(x.base)+'</td><td>'+fmtBR(x.inss)+'</td></tr>';}).join(''):'<tr><td colspan="5" class="dsh-none">Nenhum enviado.</td></tr>')+'</tbody></table>';
+      '<table class="dsh-table"><thead><tr><th>CPF</th><th>Nome</th><th>Categoria</th><th>Base</th><th>INSS (segurado)</th><th>Observação</th></tr></thead><tbody>'+
+      (all.length?all.map(function(x){return '<tr><td class="mono">'+x.cpf+'</td><td>'+(x.nome||'—')+'</td><td>'+(x.cat||'')+'</td><td>'+fmtBR(x.base)+'</td><td>'+fmtBR(x.inss)+'</td>'+ob(x.cpf)+'</tr>';}).join(''):'<tr><td colspan="6" class="dsh-none">Nenhum enviado.</td></tr>')+'</tbody></table>';
+  } else if(inssTab==='todosFolha'){
+    var allF=filt(Array.from(inssFolha.values())).sort(function(a,b){return a.cpf.localeCompare(b.cpf);});
+    html='<div class="dsh-none" style="margin:0 0 8px">'+allF.length.toLocaleString('pt-BR')+' CPF(s) na folha RGPS.</div>'+
+      '<table class="dsh-table"><thead><tr><th>CPF</th><th>Nome</th><th>Matrícula</th><th>Base</th><th>INSS (segurado)</th><th>Observação</th></tr></thead><tbody>'+
+      (allF.length?allF.map(function(x){return '<tr><td class="mono">'+x.cpf+'</td><td>'+(x.nome||'—')+'</td><td class="mono">'+(x.mat||'')+'</td><td>'+fmtBR(x.base)+'</td><td>'+fmtBR(x.inss)+'</td>'+ob(x.cpf)+'</tr>';}).join(''):'<tr><td colspan="6" class="dsh-none">Nenhum na folha.</td></tr>')+'</tbody></table>';
   } else if(inssTab==='faltaEso'||inssTab==='faltaFolha'){
     var arr=filt(inssTab==='faltaEso'?c.faltaEso:c.faltaFolha);
-    html='<table class="dsh-table"><thead><tr><th>CPF</th><th>Nome / Categoria</th><th>Base</th><th>INSS</th></tr></thead><tbody>'+
-      (arr.length?arr.map(function(x){return '<tr><td class="mono">'+x.cpf+'</td><td>'+(x.nome||x.cat||'—')+'</td><td>'+fmtBR(x.base)+'</td><td>'+fmtBR(x.inss)+'</td></tr>';}).join(''):'<tr><td colspan="4" class="dsh-none">Nenhum.</td></tr>')+'</tbody></table>';
+    html='<table class="dsh-table"><thead><tr><th>CPF</th><th>Nome / Categoria</th><th>Base</th><th>INSS</th><th>Observação</th></tr></thead><tbody>'+
+      (arr.length?arr.map(function(x){return '<tr><td class="mono">'+x.cpf+'</td><td>'+(x.nome||x.cat||'—')+'</td><td>'+fmtBR(x.base)+'</td><td>'+fmtBR(x.inss)+'</td>'+ob(x.cpf)+'</tr>';}).join(''):'<tr><td colspan="5" class="dsh-none">Nenhum.</td></tr>')+'</tbody></table>';
   } else {
     var arr2=filt(inssTab==='divBase'?c.divBase:c.divInss), lbl=inssTab==='divBase'?'Base':'INSS';
-    html='<table class="dsh-table"><thead><tr><th>CPF</th><th>Nome</th><th>Matrícula</th><th>'+lbl+' folha</th><th>'+lbl+' eSocial</th><th>Diferença</th></tr></thead><tbody>'+
-      (arr2.length?arr2.map(function(x){return '<tr><td class="mono">'+x.cpf+'</td><td>'+(x.nome||'—')+'</td><td class="mono">'+(x.mat||'')+'</td><td>'+fmtBR(x.folha)+'</td><td>'+fmtBR(x.eso)+'</td><td>'+fmtBR(x.dif)+'</td></tr>';}).join(''):'<tr><td colspan="6" class="dsh-none">Nenhuma divergência.</td></tr>')+'</tbody></table>';
+    html='<table class="dsh-table"><thead><tr><th>CPF</th><th>Nome</th><th>Matrícula</th><th>'+lbl+' folha</th><th>'+lbl+' eSocial</th><th>Diferença</th><th>Observação</th></tr></thead><tbody>'+
+      (arr2.length?arr2.map(function(x){return '<tr><td class="mono">'+x.cpf+'</td><td>'+(x.nome||'—')+'</td><td class="mono">'+(x.mat||'')+'</td><td>'+fmtBR(x.folha)+'</td><td>'+fmtBR(x.eso)+'</td><td>'+fmtBR(x.dif)+'</td>'+ob(x.cpf)+'</tr>';}).join(''):'<tr><td colspan="7" class="dsh-none">Nenhuma divergência.</td></tr>')+'</tbody></table>';
   }
   $('#inssList').innerHTML=html;
+  obsGrowIn('#inssList');
+  // o card da aba aberta fica destacado
+  document.querySelectorAll('#inssCards .card[data-tab]').forEach(function(k){ k.classList.toggle('sel', k.dataset.tab===inssTab); });
 }
 function inssExport(){
   if(!(inssFolha.size||inssEso.size)) return;
@@ -3140,8 +3173,8 @@ function inxRender(){
     '<div class="t">'+ben+' v&iacute;nculo(s) do tipo BENEF&Iacute;CIOS neste relat&oacute;rio</div>'+
     '<div class="d">O envio desses v&iacute;nculos ao eSocial <b>ainda n&atilde;o est&aacute; definido</b> &mdash; n&atilde;o trate como falta de envio sem confirmar a regra. Eles est&atilde;o destacados na lista abaixo.</div>'+
     '</div></div>') : '';
-  var html='<div class="card etot"><div class="lab">V&iacute;nculos no relat&oacute;rio</div><div class="num">'+c.total+'</div><div class="meta">'+(c.semBase?c.semBase+' fora da base':'todos localizados na base')+'</div></div>';
-  INX_BUCKETS.forEach(function(b){ html+='<div class="card '+b.card+'"><div class="lab">'+b.lab+'</div><div class="num">'+(c[b.k]||0)+'</div><div class="meta">'+b.desc+'</div></div>'; });
+  var html='<div class="card etot'+(inxFilter.size?'':' sel')+'" data-b="" title="Clique para ver todos"><div class="lab">V&iacute;nculos no relat&oacute;rio</div><div class="num">'+c.total+'</div><div class="meta">'+(c.semBase?c.semBase+' fora da base':'todos localizados na base')+'</div></div>';
+  INX_BUCKETS.forEach(function(b){ html+='<div class="card '+b.card+(inxFilter.has(b.k)?' sel':'')+'" data-b="'+b.k+'" title="Clique para filtrar; clique em outros para combinar"><div class="lab">'+b.lab+'</div><div class="num">'+(c[b.k]||0)+'</div><div class="meta">'+b.desc+'</div></div>'; });
   $('#inxCards').innerHTML=html;
   var ch='<button class="chip call" data-b="" aria-pressed="'+(inxFilter.size?'false':'true')+'">Todos</button>';
   INX_BUCKETS.forEach(function(b){ ch+='<button class="chip '+b.chip+'" data-b="'+b.k+'" aria-pressed="'+(inxFilter.has(b.k)?'true':'false')+'">'+b.lab+' ('+(c[b.k]||0)+')</button>'; });
@@ -3175,8 +3208,10 @@ function inxRender(){
       '</div>'+
       (isBen?'<div class="inx-benmsg">Tipo de v&iacute;nculo <b>BENEF&Iacute;CIOS</b> &mdash; envio ao eSocial ainda indefinido.</div>':'')+
       (i.cls.tempNote?'<div class="inx-note">'+inxEsc(i.cls.tempNote)+'</div>':'')+
+      obsField('inexistentes',inxCompTxt,i.cpf+'|'+i.mat)+
     '</div>';
   }).join('');
+  obsGrowIn('#inxList');
 }
 
 function inxExport(){
@@ -3395,14 +3430,16 @@ function renderMenuListBody(){
       '<td>'+lmbEsc(lmbCatOf(r))+'</td>'+
       '<td><span class="lmb-sit"><i style="background:'+sd.color+'"></i>'+lmbEsc(sd.label)+'</span>'+(det?'<span class="lmb-sub2">'+lmbEsc(det)+'</span>':'')+'</td>'+
       '<td>'+lmbEsc(LMB_REG[g].label)+(r.PLANO_PREVIDENCIARIO?'<span class="lmb-sub2">'+lmbEsc(r.PLANO_PREVIDENCIARIO)+'</span>':'')+'</td>'+
+      '<td class="obs-td">'+obsField('inicio','-',(r.NUMFUNC||'')+'/'+(r.NUMVINC||''))+'</td>'+
     '</tr>';
   }).join('');
   body.innerHTML='<div class="lmb-twrap"><table class="lmb-table"><thead><tr>'+
-      '<th>Nome</th><th>Matrícula</th><th>CPF</th><th>Categoria</th><th>Situação</th><th>Regime</th>'+
+      '<th>Nome</th><th>Matrícula</th><th>CPF</th><th>Categoria</th><th>Situação</th><th>Regime</th><th>Observação</th>'+
     '</tr></thead><tbody>'+rows+'</tbody></table></div>'+
     '<div class="lmb-pager"><span>'+(ini+1).toLocaleString('pt-BR')+'–'+(ini+fatia.length).toLocaleString('pt-BR')+' de '+n.toLocaleString('pt-BR')+' &middot; pág. '+lmbList.page+'/'+pages+'</span>'+
       '<button type="button" class="lmb-lbtn" data-l="prev"'+(lmbList.page<=1?' disabled':'')+'>&lsaquo; anterior</button>'+
       '<button type="button" class="lmb-lbtn" data-l="next"'+(lmbList.page>=pages?' disabled':'')+'>próxima &rsaquo;</button></div>';
+  obsGrowIn(body);
 }
 function lmbListSectionHtml(){
   if(!lmbList.open) return '<button type="button" class="lmb-listlink" data-l="toggle">Ver lista de servidores &rarr;</button>';
@@ -3424,13 +3461,13 @@ function lmbScrollList(){
 function lmbListExport(){
   var recs=lmbListRecs(); if(!recs.length) return;
   var aoa=[['Nome','NUMFUNC','NUMVINC','CPF','Categoria (coluna E)','Tipo de vínculo','Situação','Motivo de vacância',
-            'Data de admissão','Data de aposentadoria','Regime','Plano previdenciário','Lotação','Cargo']];
+            'Data de admissão','Data de aposentadoria','Regime','Plano previdenciário','Lotação','Cargo','Observação']];
   recs.forEach(function(r){ var s=lmbSitOf(r);
     aoa.push([r.NOME||'',r.NUMFUNC||'',r.NUMVINC||'',r.CPF||'',lmbCatOf(r),r.TIPOVINC||'',LMB_SIT[s].label,r.FORMAVAC||'',
-              r.DTADM||'',r.DTAPOSENT||'',LMB_REG[lmbRegOf(r)].label,r.PLANO_PREVIDENCIARIO||'',r.LOTACAO||'',r.CARGO||'']); });
+              r.DTADM||'',r.DTAPOSENT||'',LMB_REG[lmbRegOf(r)].label,r.PLANO_PREVIDENCIARIO||'',r.LOTACAO||'',r.CARGO||'',obsGet('inicio','-',(r.NUMFUNC||'')+'/'+(r.NUMVINC||''))]); });
   var wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(aoa);
   ws['!cols']=[{wch:36},{wch:10},{wch:8},{wch:13},{wch:24},{wch:20},{wch:24},{wch:22},{wch:12},{wch:12},{wch:10},{wch:18},{wch:28},{wch:28}];
-  ws['!autofilter']={ref:'A1:N'+aoa.length};
+  ws['!autofilter']={ref:'A1:O'+aoa.length};
   XLSX.utils.book_append_sheet(wb,ws,'Servidores');
   var tag=lmbFilterLabels().join('_').normalize('NFD').replace(/[^A-Za-z0-9]+/g,'-').replace(/^-|-$/g,'').slice(0,50)||'todos';
   XLSX.writeFile(wb,'servidores_'+tag+'.xlsx');
@@ -3524,6 +3561,168 @@ document.addEventListener('click',function(e){
     else { err.classList.add('ok'); err.textContent='Se esse e-mail estiver cadastrado, enviamos um link. Veja a caixa de entrada e o spam.'; }
   },function(){ err.textContent='Falha ao enviar o e-mail de redefinição.'; });
 });
+
+/* ===================== Gravar competência no Supabase (uma gravação por tela) =====================
+   tabelas: competencia_snapshot (resumo) + competencia_item (detalhe) — ver schema-competencias.sql.
+   o detalhe usa MATRÍCULA, nunca CPF ou nome. quem só tem CPF entra apenas na contagem.          */
+const SNAP_NOMES={inss:'Conferência de INSS', confronto:'Confronto eSocial × ERGON', envio:'Controle de envio', inexistentes:'Não localizados no eSocial'};
+function snapCompOk(s){ return /^(0[1-9]|1[0-2])\/\d{4}$/.test(String(s||'').trim()); }
+// competência detectada pode vir vazia, em outro formato ou com várias ("01/2025, 02/2025"): confirma com o usuário
+function snapPedirComp(detectada){
+  var d=String(detectada||'').trim(), sug=d.split(/\s*,\s*/)[0];
+  if(snapCompOk(d)) return d;
+  var v=prompt((d?'Competência detectada: '+d+'\n\n':'')+'Qual competência gravar? (formato MM/AAAA)', snapCompOk(sug)?sug:'');
+  if(v==null) return null;
+  v=v.trim();
+  if(!snapCompOk(v)){ alert('Competência inválida. Use o formato MM/AAAA, por exemplo 01/2025.'); return null; }
+  return v;
+}
+async function snapSave(ferramenta, competencia, resumo, itens){
+  if(!(window.Cloud && Cloud.on && Cloud.on())){ alert('Para gravar na nuvem, entre com e-mail e senha (o acesso local pela senha mestra não grava).'); return; }
+  var comp=snapPedirComp(competencia); if(!comp) return;
+  itens=itens||[];
+  // trava de privacidade: nada com cara de CPF (11 dígitos) nem campo cpf/nome sai do navegador
+  var bruto=JSON.stringify({resumo:resumo||{}, itens:itens});
+  if(/(^|[^\d])\d{11}([^\d]|$)/.test(bruto) || /"(cpf|nome)"\s*:/i.test(bruto)){
+    alert('Gravação bloqueada: o conteúdo desta tela tem CPF ou nome, que não podem ir para a nuvem.\nAvise para ajustarmos o que é gravado.');
+    return;
+  }
+  try{
+    var ex=await Cloud.from('competencia_snapshot').select('atualizado_email,atualizado_em,itens')
+      .eq('ferramenta',ferramenta).eq('competencia',comp).limit(1);
+    if(ex && ex.error) throw ex.error;
+    if(ex && ex.data && ex.data.length){
+      var a=ex.data[0], quando=a.atualizado_em? new Date(a.atualizado_em).toLocaleString('pt-BR'):'?';
+      if(!confirm('Já existe uma gravação de '+comp+' em "'+SNAP_NOMES[ferramenta]+'",\nfeita por '+(a.atualizado_email||'outro usuário')+' em '+quando+'.\n\nSubstituir pela situação atual?')) return;
+    }
+    var up=await Cloud.from('competencia_snapshot').upsert({
+      ferramenta:ferramenta, competencia:comp, resumo:resumo||{}, itens:itens.length,
+      atualizado_em:new Date().toISOString(), atualizado_email:Cloud.email()
+    },{onConflict:'ferramenta,competencia'});
+    if(up && up.error) throw up.error;
+    // detalhe: apaga o da gravação anterior e insere o atual, em lotes
+    var del=await Cloud.from('competencia_item').delete().eq('ferramenta',ferramenta).eq('competencia',comp);
+    if(del && del.error) throw del.error;
+    for(var i=0;i<itens.length;i+=500){
+      var lote=itens.slice(i,i+500).map(function(x,j){ return {ferramenta:ferramenta, competencia:comp, ordem:i+j+1,
+        matricula:String(x.matricula||''), tipo:String(x.tipo||''), valor:x.valor||{}}; });
+      var ins=await Cloud.from('competencia_item').insert(lote);
+      if(ins && ins.error) throw ins.error;
+    }
+    alert('Competência '+comp+' gravada na nuvem.\n'+SNAP_NOMES[ferramenta]+' · '+itens.length+' item(ns) de detalhe.');
+  }catch(e){
+    var m=String((e&&e.message)||e);
+    if(/relation .* does not exist|competencia_snapshot|42P01/i.test(m)) m='as tabelas ainda não existem no Supabase — rode o arquivo schema-competencias.sql no SQL Editor.';
+    alert('Não consegui gravar: '+m);
+  }
+}
+
+/* --- coletores: o "cenário atual" de cada tela --- */
+function snapEnvio(){
+  if(!envFolha.length){ alert('Importe a folha (esperados) antes de gravar.'); return; }
+  var c=envCompute(), itens=[];
+  c.folMap.forEach(function(o){
+    var mat=(o.mats||[]).join(', '), base={categoria:o.categoria||'', situacao:o.situacao||'',
+      observacao:obsLimpa(obsGet('envio',envComp(),o.cpf))};
+    if(o.pend) itens.push({matricula:mat, tipo:'pendente', valor:Object.assign({motivo:obsLimpa(o.motivo)},base)});
+    else if(o.enviado) itens.push({matricula:mat, tipo:'enviado', valor:Object.assign({tipos:o.tipos||''},base)});
+    else if(o.gerado) itens.push({matricula:mat, tipo:'gerado_nao_enviado', valor:Object.assign({tipos:o.tipos||''},base)});
+    else itens.push({matricula:mat, tipo:'nao_gerado', valor:base});
+  });
+  // atenção: em envCompute, "enviados" e "pend" são LISTAS de pessoas (com CPF/nome) — aqui só vai a contagem
+  var n=function(x){ return Array.isArray(x)? x.length : (+x||0); };
+  snapSave('envio', envComp(), {esperados:n(c.esperados), vinculos:n(c.vinculos), gerados:n(c.gerados), enviados:n(c.enviados),
+    a_enviar:n(c.restante), pendentes:n(c.pend), gerados_fora_da_lista:n(c.fora)}, itens);
+}
+function snapConfronto(){
+  if(!processed.length){ alert('Processe o arquivo de divergências antes de gravar.'); return; }
+  var por={}; processed.forEach(function(p){ var b=displayBucket(p); por[b]=(por[b]||0)+1; });
+  var comps={}; processed.forEach(function(p){ if(p.ano&&p.mes) comps[String(p.mes).padStart(2,'0')+'/'+p.ano]=1; });
+  var itens=processed.map(function(p){ return {matricula:p.mat||'', tipo:displayBucket(p),
+    valor:{evento:p.evento, evento_automatico:p.autoEvento, manual:!!p.manual, situacao_manual:p.status||'',
+           observacao:obsLimpa(p.obs), regime:p.regime||'', situacao:p.situacao||''}}; });
+  snapSave('confronto', Object.keys(comps).sort().join(', '), {total:processed.length, por_grupo:por,
+    honorarios:(typeof honorLoaded!=='undefined'&&honorLoaded)?'carregada':'nao carregada'}, itens);
+}
+function snapInexist(){
+  if(!inxItems.length){ alert('Importe o relatório de não localizados antes de gravar.'); return; }
+  var c=inxCounts();
+  var itens=inxItems.map(function(i){ return {matricula:i.mat||'', tipo:i.bucket,
+    valor:{situacao:(i.cls&&i.cls.situacao)||'', tipo_vinculo:i.tipovinc||'', crmen:(i.crs||[]).join(', '),
+           linhas:i.n||1, fora_da_base:!i.rec, observacao:obsLimpa(obsGet('inexistentes',inxCompTxt,i.cpf+'|'+i.mat))}}; });
+  snapSave('inexistentes', inxCompTxt, {total:c.total, s1200:c['S-1200']||0, s1202:c['S-1202']||0, s1207:c['S-1207']||0,
+    revisar:c['REVISAR']||0, beneficios:c['BENEFICIO']||0, fora_da_base:c.semBase||0}, itens);
+}
+function snapInss(){
+  if(!inssFolha.size || !inssEso.size){ alert('Importe a folha RGPS e o S-5001 antes de gravar.'); return; }
+  // a competência vem do campo do cabeçalho; resolve ANTES para as observações serem as da competência certa
+  var comp=snapPedirComp(inssComp()); if(!comp) return;
+  var ce=document.getElementById('inssComp');
+  if(ce && ce.value.trim()!==comp){ ce.value=comp; try{ localStorage.setItem('esocial_inss_comp',comp); }catch(e){} inssRenderList(inssCompute()); }
+  var o=function(cpf){ return obsLimpa(obsGet('inss',comp,cpf)); }, ja=new Set();
+  var c=inssCompute(), itens=[];
+  c.divBase.forEach(function(x){ ja.add(x.cpf); itens.push({matricula:x.mat||'', tipo:'div_base', valor:{folha:x.folha, esocial:x.eso, diferenca:x.dif, observacao:o(x.cpf)}}); });
+  c.divInss.forEach(function(x){ ja.add(x.cpf); itens.push({matricula:x.mat||'', tipo:'div_inss', valor:{folha:x.folha, esocial:x.eso, diferenca:x.dif, observacao:o(x.cpf)}}); });
+  c.faltaEso.forEach(function(f){ ja.add(f.cpf); itens.push({matricula:f.mat||'', tipo:'falta_no_esocial', valor:{base:f.base, inss:f.inss, observacao:o(f.cpf)}}); });
+  // quem está na folha sem problema, mas com observação escrita, também vai (a observação não se perde)
+  inssFolha.forEach(function(f){ var t=o(f.cpf); if(t && !ja.has(f.cpf) && f.mat) itens.push({matricula:f.mat, tipo:'observacao', valor:{observacao:t}}); });
+  // "falta na folha" só existe do lado do eSocial, identificado por CPF: entra apenas na contagem
+  snapSave('inss', comp, {dctf_esocial:c.dctf, dctf_folha:c.dctfFolha, falta_no_esocial:c.faltaEso.length,
+    falta_na_folha:c.faltaFolha.length, div_base:c.divBase.length, div_inss:c.divInss.length, parametros:inssParams}, itens);
+}
+document.addEventListener('click',function(e){
+  var b=e.target.closest('[data-snap]'); if(!b) return;
+  e.preventDefault();
+  var f={inss:snapInss, confronto:snapConfronto, envio:snapEnvio, inexistentes:snapInexist}[b.getAttribute('data-snap')];
+  if(f) f();
+});
+
+/* ---------- observação por servidor, POR TELA E COMPETÊNCIA ----------
+   salva no navegador a cada tecla (esocial_obs_v1 = {tela:{competencia:{chave:texto}}})
+   e vai para a nuvem junto com o "Gravar competência" de cada tela.                     */
+var OBS_KEY='esocial_obs_v1';
+function obsAll(){ try{ return JSON.parse(localStorage.getItem(OBS_KEY))||{}; }catch(e){ return {}; } }
+function obsGet(tool,comp,key){ var a=obsAll(); return (((a[tool]||{})[comp||'-'])||{})[key]||''; }
+function obsSet(tool,comp,key,val){
+  var a=obsAll(), c=comp||'-'; a[tool]=a[tool]||{}; a[tool][c]=a[tool][c]||{};
+  if(String(val||'').trim()) a[tool][c][key]=String(val); else delete a[tool][c][key];
+  try{ localStorage.setItem(OBS_KEY,JSON.stringify(a)); }catch(e){}
+}
+function obsEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function obsField(tool,comp,key){
+  return '<textarea class="obs-edit obs-any" rows="1" placeholder="Observação…" data-obs-tool="'+tool+'" data-obs-comp="'+obsEsc(comp||'-')+
+    '" data-obs-key="'+obsEsc(key)+'">'+obsEsc(obsGet(tool,comp,key))+'</textarea>';
+}
+function obsGrowIn(root){ if(typeof root==='string') root=document.querySelector(root); if(root) root.querySelectorAll('.obs-any').forEach(autoGrowObs); }
+// digitar só grava — não redesenha nada, então o campo não perde o foco
+document.addEventListener('input',function(e){ var t=e.target;
+  if(t && t.classList && t.classList.contains('obs-any')){
+    obsSet(t.getAttribute('data-obs-tool'),t.getAttribute('data-obs-comp'),t.getAttribute('data-obs-key'),t.value); autoGrowObs(t); } });
+// na nuvem, CPF digitado dentro de observação/motivo vira "[CPF removido]" (senão a trava bloquearia a gravação inteira)
+function obsLimpa(s){ return String(s||'').replace(/\d{3}\.?\d{3}\.?\d{3}-?\d{2}/g,'[CPF removido]'); }
+
+/* INSS não trazia competência: campo no cabeçalho, lembrado no navegador */
+function inssComp(){ var el=document.getElementById('inssComp'), v=el?String(el.value||'').trim():''; return snapCompOk(v)? v : ''; }
+(function(){
+  var el=document.getElementById('inssComp'); if(!el) return;
+  try{ el.value=localStorage.getItem('esocial_inss_comp')||''; }catch(e){}
+  el.addEventListener('input',function(){
+    try{ localStorage.setItem('esocial_inss_comp',el.value.trim()); }catch(e){}
+    if(inssFolha.size||inssEso.size) inssRenderList(inssCompute());   // observações mudam com a competência
+  });
+})();
+/* KPIs como botões — INSS: cada card abre a aba correspondente */
+(function(){ var box=document.getElementById('inssCards'); if(!box) return;
+  box.addEventListener('click',function(e){ var card=e.target.closest('.card'); if(!card||!card.dataset.tab) return;
+    inssTab=card.dataset.tab;
+    document.querySelectorAll('#inssTabs .chip').forEach(function(x){ x.setAttribute('aria-pressed', x.dataset.tab===inssTab); });
+    inssRenderList(inssCompute()); }); })();
+/* KPIs como botões — Não localizados: cada card filtra pelo evento; o total limpa o filtro */
+(function(){ var box=document.getElementById('inxCards'); if(!box) return;
+  box.addEventListener('click',function(e){ var card=e.target.closest('.card'); if(!card||card.dataset.b==null) return;
+    var k=card.dataset.b;
+    if(!k) inxFilter=new Set(); else { if(inxFilter.has(k)) inxFilter.delete(k); else inxFilter.add(k); }
+    inxRender(); }); })();
 
 /* init */
 /* casca do app: as telas das ferramentas passam a viver DENTRO do centro do menu,
