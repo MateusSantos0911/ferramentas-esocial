@@ -1174,6 +1174,14 @@
   #tool-envio .env-explain{background:rgba(120,150,200,.08);border:1px solid var(--line);border-radius:12px;padding:13px 16px;font-size:13.5px;color:var(--muted);margin:4px 0 16px;line-height:1.55}
   #tool-envio .env-explain b{color:var(--ink)}
   #envCards .card{cursor:pointer;user-select:none}
+  .env-restore{display:flex;align-items:flex-start;gap:12px;background:#EEF4FC;border:1px solid #BCD3F0;border-left:4px solid var(--action);border-radius:8px;padding:12px 16px;margin:14px 0 4px;font-size:13px;color:#172033}
+  .env-restore-ic{font-size:19px;line-height:1.1;color:var(--action);flex:none}
+  .env-restore-txt{flex:1;line-height:1.5}
+  .env-restore-txt span{color:#5F6B7A;font-size:12.5px}
+  .env-restore-btn{flex:none;align-self:center;font:inherit;font-size:12.5px;font-weight:600;padding:7px 12px;border-radius:7px;cursor:pointer;background:#fff;border:1px solid #BE123C;color:#BE123C}
+  .env-restore-btn:hover{background:#BE123C;color:#fff}
+  html[data-theme="dark"] .env-restore{background:rgba(30,90,168,.16);border-color:rgba(111,160,220,.4);color:var(--ink)}
+  html[data-theme="dark"] .env-restore-txt span{color:var(--muted)}
   .env-item{border:1px solid var(--line);border-radius:8px;padding:11px 14px;margin-bottom:9px;background:var(--surface)}
   .env-item.pend{border-color:var(--warn);background:rgba(224,169,60,.07)}
   .env-row{display:flex;align-items:flex-start;gap:12px;justify-content:space-between;flex-wrap:wrap}
@@ -1254,6 +1262,8 @@
     <button class="env-folder-btn" id="envPickFolder" type="button">Escolher pasta&hellip;</button>
     <button class="env-folder-btn primary hidden" id="envLoadFolder" type="button">Carregar desta pasta</button>
   </div>
+
+  <div class="env-restore hidden" id="envRestore" role="status"></div>
 
   <div id="envResults" class="hidden">
     <div class="cards" id="envCards"></div>
@@ -2396,11 +2406,13 @@ let envPageSize=10, envPage=1;
 const ENV_PEND_KEY='esocial_env_pend', ENV_SENT_KEY='esocial_env_sent';
 function envComp(){ return (envFolha.find(function(x){return x.comp;})||{}).comp||''; }
 function envStoreLoad(){
+  if(!envComp()){ envPend=new Map(); envSent=new Map(); return; }
   try{ var p=JSON.parse(localStorage.getItem(ENV_PEND_KEY))||{}, o=p[envComp()]||{}; envPend=new Map(Object.keys(o).map(function(k){return [k,o[k]];})); }catch(e){ envPend=new Map(); }
   try{ var s=JSON.parse(localStorage.getItem(ENV_SENT_KEY))||{}, a=s[envComp()]||[]; envSent=new Map(a.map(function(k){return [k,1];})); }catch(e){ envSent=new Map(); }
 }
-function envPendSave(){ try{ var all=JSON.parse(localStorage.getItem(ENV_PEND_KEY))||{}; var o={}; envPend.forEach(function(v,k){o[k]=v;}); all[envComp()]=o; localStorage.setItem(ENV_PEND_KEY, JSON.stringify(all)); }catch(e){} }
-function envSentSave(){ try{ var all=JSON.parse(localStorage.getItem(ENV_SENT_KEY))||{}; all[envComp()]=Array.from(envSent.keys()); localStorage.setItem(ENV_SENT_KEY, JSON.stringify(all)); }catch(e){} }
+// sem competência não se guarda nada — era o "balde vazio" que misturava meses diferentes
+function envPendSave(){ if(!envComp()) return; try{ var all=JSON.parse(localStorage.getItem(ENV_PEND_KEY))||{}; var o={}; envPend.forEach(function(v,k){o[k]=v;}); all[envComp()]=o; localStorage.setItem(ENV_PEND_KEY, JSON.stringify(all)); }catch(e){} }
+function envSentSave(){ if(!envComp()) return; try{ var all=JSON.parse(localStorage.getItem(ENV_SENT_KEY))||{}; all[envComp()]=Array.from(envSent.keys()); localStorage.setItem(ENV_SENT_KEY, JSON.stringify(all)); }catch(e){} }
 
 function envReadFolha(file){
   var fr=new FileReader();
@@ -2422,9 +2434,12 @@ function envReadFolha(file){
         situacao:(String(r[kSit]==null?'':r[kSit]).trim().toUpperCase())||'(sem)',
         comp: kComp?dshCompFrom(r[kComp]):''
       };}).filter(function(x){return x.cpf && x.cpf!=='00000000000';});
-      var comp=envComp();
-      $('#envFolhaStatus').innerHTML='Esperados: <b>'+envFolha.length.toLocaleString('pt-BR')+'</b> servidor(es)'+(comp?' &middot; '+comp:'');
+      // a competência separa as marcações de cada mês: tem que existir e ser uma só
+      var comp=envResolveComp();
+      if(!comp){ envFolha=[]; envRender(); return; }
+      $('#envFolhaStatus').innerHTML='Esperados: <b>'+envFolha.length.toLocaleString('pt-BR')+'</b> servidor(es) &middot; '+comp;
       envStoreLoad();
+      envShowRestore(comp);   // avisa se havia marcações guardadas desta competência
       envRender();
     }catch(e){ alert('Erro lendo a folha: '+e.message); }
   };
@@ -2557,6 +2572,7 @@ function envExport(){
 }
 function envClear(){
   envFolha=[]; envGerado=new Map(); envTypes={'S-1200':0,'S-1202':0,'S-1207':0,'?':0}; envFiles=[]; envSearch=''; envTab='afazer'; envPend=new Map(); envSent=new Map(); envPage=1;
+  envHideRestore();
   $('#envFolhaStatus').innerHTML='Folha do ERGON (.xlsx/.csv) &middot; arraste ou clique';
   $('#envJsonStatus').innerHTML='JSONs gerados &middot; S-1200 / 1202 / 1207 &middot; arraste ou clique';
   var sb=$('#envSearch'); if(sb) sb.value='';
@@ -3723,6 +3739,64 @@ function inssComp(){ var el=document.getElementById('inssComp'), v=el?String(el.
     var k=card.dataset.b;
     if(!k) inxFilter=new Set(); else { if(inxFilter.has(k)) inxFilter.delete(k); else inxFilter.add(k); }
     inxRender(); }); })();
+
+/* ---------- Controle de envio: competência obrigatória + aviso do que foi restaurado ---------- */
+// competência da folha: precisa ser uma só e no formato MM/AAAA; senão pergunta.
+// cancelar = a folha não é carregada (nunca mais se usa o "balde vazio")
+function envResolveComp(){
+  var vistas={}; envFolha.forEach(function(x){ if(x.comp) vistas[x.comp]=1; });
+  var lista=Object.keys(vistas), validas=lista.filter(snapCompOk);
+  var comp=(lista.length===1 && validas.length===1) ? validas[0] : '';
+  if(!comp){
+    var motivo = !lista.length ? 'A folha não tem a coluna de competência.'
+      : lista.length>1 ? 'A folha tem mais de uma competência: '+lista.slice(0,4).join(', ')+(lista.length>4?'…':'')+'.'
+      : 'Não reconheci a competência da folha ("'+lista[0]+'").';
+    var v=prompt(motivo+'\n\nQual é a competência desta folha? (MM/AAAA)\n\nEla separa as marcações de cada mês — sem ela, pendências de um mês apareceriam em outro.', validas[0]||'');
+    if(v==null){ alert('Folha não carregada: informe a competência para continuar.'); return ''; }
+    v=v.trim();
+    if(!snapCompOk(v)){ alert('Competência inválida ("'+v+'"). Use o formato MM/AAAA, por exemplo 03/2025. A folha não foi carregada.'); return ''; }
+    comp=v;
+  }
+  envFolha.forEach(function(x){ x.comp=comp; });
+  return comp;
+}
+function envSavedCounts(comp){
+  var n={pend:0,sent:0,obs:0};
+  try{ n.pend=Object.keys((JSON.parse(localStorage.getItem(ENV_PEND_KEY))||{})[comp]||{}).length; }catch(e){}
+  try{ n.sent=((JSON.parse(localStorage.getItem(ENV_SENT_KEY))||{})[comp]||[]).length; }catch(e){}
+  try{ n.obs=Object.keys((obsAll().envio||{})[comp]||{}).length; }catch(e){}
+  return n;
+}
+function envHideRestore(){ var el=document.getElementById('envRestore'); if(el){ el.classList.add('hidden'); el.innerHTML=''; } }
+function envShowRestore(comp){
+  var el=document.getElementById('envRestore'); if(!el) return;
+  var n=envSavedCounts(comp);
+  if(!(n.pend||n.sent||n.obs)){ envHideRestore(); return; }
+  var partes=[];
+  if(n.pend) partes.push(n.pend+(n.pend>1?' pendências':' pendência')+' (com motivo)');
+  if(n.sent) partes.push(n.sent+(n.sent>1?' enviados':' enviado'));
+  if(n.obs)  partes.push(n.obs+(n.obs>1?' observações':' observação'));
+  el.innerHTML='<span class="env-restore-ic" aria-hidden="true">&#8634;</span>'+
+    '<div class="env-restore-txt"><b>A competência '+comp+' já tinha marcações neste navegador, e elas foram restauradas:</b> '+partes.join(', ')+'.'+
+    '<br><span>Se você está recomeçando a conferência (por exemplo, com uma folha corrigida), apague-as.</span></div>'+
+    '<button type="button" class="env-restore-btn" id="envRestoreReset">Começar do zero</button>';
+  el.classList.remove('hidden');
+}
+// apaga SÓ o que está guardado neste navegador para a competência aberta (a nuvem não é tocada)
+function envResetComp(){
+  var comp=envComp(); if(!comp) return;
+  var n=envSavedCounts(comp);
+  if(!confirm('Apagar as marcações guardadas de '+comp+' neste navegador?\n\n'+
+    n.pend+' pendência(s) com motivo, '+n.sent+' enviado(s) e '+n.obs+' observação(ões) desta competência serão removidos.\n\n'+
+    'Isso não afeta o que já foi gravado na nuvem e não pode ser desfeito.')) return;
+  try{ var p=JSON.parse(localStorage.getItem(ENV_PEND_KEY))||{}; delete p[comp]; localStorage.setItem(ENV_PEND_KEY,JSON.stringify(p)); }catch(e){}
+  try{ var s=JSON.parse(localStorage.getItem(ENV_SENT_KEY))||{}; delete s[comp]; localStorage.setItem(ENV_SENT_KEY,JSON.stringify(s)); }catch(e){}
+  try{ var a=obsAll(); if(a.envio && a.envio[comp]){ delete a.envio[comp]; localStorage.setItem(OBS_KEY,JSON.stringify(a)); } }catch(e){}
+  envPend=new Map(); envSent=new Map();
+  envHideRestore();
+  envRender();
+}
+document.addEventListener('click',function(e){ if(e.target.closest('#envRestoreReset')){ e.preventDefault(); envResetComp(); } });
 
 /* init */
 /* casca do app: as telas das ferramentas passam a viver DENTRO do centro do menu,
