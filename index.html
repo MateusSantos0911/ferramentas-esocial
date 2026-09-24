@@ -327,6 +327,8 @@
   .inx-row.ev1202{border-left-color:var(--s1202)}
   .inx-row.ev1207{border-left-color:var(--s1207)}
   .inx-row.evrev{border-left-color:var(--warn)}
+  .inx-row.evjust{border-left-color:var(--just)}
+  .inx-ctrls{display:flex;flex-wrap:wrap;gap:6px 8px;align-items:center;margin-top:9px}
   .inx-row.evben{border-left-width:5px;border-left-color:#B45309;background:#FFFBEB}
   .inx-top{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
   .inx-name{font-weight:650;font-size:14px}
@@ -1017,9 +1019,9 @@
         <input type="text" id="rRub8999" inputmode="numeric">
         <small>Padrão 8999.</small>
       </label>
-      <label>Rubrica ignorada (pensão)
+      <label>Rubrica que abate VLRDEDPENSAL
         <input type="text" id="rRub4015" inputmode="numeric">
-        <small>Padrão 4015 — não abate nada.</small>
+        <small>Padrão 4015 — pensão alimentícia.</small>
       </label>
     </div>
     <div class="rules-actions">
@@ -1646,9 +1648,13 @@ let honorLoaded = false;
 let hideJustified = false;
 /* regras configuráveis (Ajustes de regra) */
 const RULES_KEY='esocial_rules_v1';
-const RULE_DEFAULTS={honorTol:0.01, apoSameMonth:'S-1207', rubRendtrib:'774', rubCrmen:'8999', rubIgnore:'4015'};
+// 774 abate VLRRENDTRIB · 8999 abate VLRCRMEN · 4015 abate VLRDEDPENSAL (pensão alimentícia)
+const RULE_DEFAULTS={honorTol:0.01, apoSameMonth:'S-1207', rubRendtrib:'774', rubCrmen:'8999', rubPensal:'4015'};
 let RULES=Object.assign({},RULE_DEFAULTS);
-function loadRules(){ try{const s=JSON.parse(localStorage.getItem(RULES_KEY)); if(s&&typeof s==='object') RULES=Object.assign({},RULE_DEFAULTS,s);}catch(e){} }
+function loadRules(){ try{const s=JSON.parse(localStorage.getItem(RULES_KEY)); if(s&&typeof s==='object'){
+  // regras salvas antes guardavam a 4015 como "rubIgnore" (ignorada): aproveita o mesmo código
+  if(s.rubIgnore && !s.rubPensal) s.rubPensal=s.rubIgnore; delete s.rubIgnore;
+  RULES=Object.assign({},RULE_DEFAULTS,s); } }catch(e){} }
 function saveRules(){ try{localStorage.setItem(RULES_KEY, JSON.stringify(RULES));}catch(e){} }
 
 function processDivergences(rows){
@@ -1762,7 +1768,7 @@ function buildHonorMap(records){
     const slot=map.get(key);
     if(rub===RULES.rubRendtrib) slot.h774+=val;
     else if(rub===RULES.rubCrmen) slot.h8999+=val;
-    else if(rub===RULES.rubIgnore) slot.h4015+=val;
+    else if(rub===RULES.rubPensal) slot.h4015+=val;
   }
   return map;
 }
@@ -1778,18 +1784,23 @@ function honorFor(p){
   const gapC=(dC&&dC.ergon!=null&&dC.esocial!=null)?+(dC.ergon-dC.esocial).toFixed(2):null;
   const resT=(gapT!=null)?+(gapT-(h.h774||0)).toFixed(2):null;
   const resC=(gapC!=null)?+(gapC-(h.h8999||0)).toFixed(2):null;
+  // pensão alimentícia: a rubrica 4015 abate a diferença de VLRDEDPENSAL (mesma regra das outras duas)
+  const dP=p.diffs.find(d=>d.field==='VLRDEDPENSAL');
+  const gapP=(dP&&dP.ergon!=null&&dP.esocial!=null)?+(dP.ergon-dP.esocial).toFixed(2):null;
+  const resP=(gapP!=null)?+(gapP-(h.h4015||0)).toFixed(2):null;
   // campos explicados / pendentes
   let explained=0, pending=0;
   for(const d of p.diffs){
     if(d.field==='VLRRENDTRIB' && h.h774 && resT!=null && Math.abs(resT)<=RULES.honorTol) explained++;
     else if(d.field==='VLRCRMEN' && h.h8999 && resC!=null && Math.abs(resC)<=RULES.honorTol) explained++;
+    else if(d.field==='VLRDEDPENSAL' && h.h4015 && resP!=null && Math.abs(resP)<=RULES.honorTol) explained++;
     else pending++;
   }
   let status='sem';
   if(explained>0 && pending===0) status='justificada';
   else if(explained>0 && pending>0) status='parcial';
   else status='naoexplica'; // tem honorários mas não bate com nenhum campo
-  return {found:true, h774:h.h774, h8999:h.h8999, h4015:h.h4015, gapT, gapC, resT, resC, status, explained, pending};
+  return {found:true, h774:h.h774, h8999:h.h8999, h4015:h.h4015, gapT, gapC, gapP, resT, resC, resP, status, explained, pending};
 }
 function applyHonor(){
   for(const p of processed) p.honor = honorFor(p);
@@ -1869,6 +1880,9 @@ function diffHTML(d, honor){
     } else if(d.field==='VLRCRMEN' && honor.h8999){
       const ok=honor.resC!=null && Math.abs(honor.resC)<=RULES.honorTol;
       hsub=`<div class="hsub"><span class="htag">honorários ${RULES.rubCrmen}</span><span>−${fmtBR(honor.h8999)}</span><span class="${ok?'ok':'res'}">resíduo ${fmtBR(honor.resC)} ${ok?'✓ justificado':'⚠ revisar'}</span></div>`;
+    } else if(d.field==='VLRDEDPENSAL' && honor.h4015){
+      const ok=honor.resP!=null && Math.abs(honor.resP)<=RULES.honorTol;
+      hsub=`<div class="hsub"><span class="htag">honorários ${RULES.rubPensal} · pensão alimentícia</span><span>−${fmtBR(honor.h4015)}</span><span class="${ok?'ok':'res'}">resíduo ${fmtBR(honor.resP)} ${ok?'✓ justificado':'⚠ revisar'}</span></div>`;
     }
   }
   return `<div class="dfield">
@@ -1971,7 +1985,7 @@ function exportXLSX(){
   XLSX.utils.book_append_sheet(wb,wsDet,'Divergências detalhadas');
 
   // Sheet 2: por servidor
-  const honCols = honorLoaded ? ['Honor 774','Honor 8999','Resíduo VLRRENDTRIB','Resíduo VLRCRMEN','Situação honorários'] : [];
+  const honCols = honorLoaded ? ['Honor 774','Honor 8999','Honor 4015','Resíduo VLRRENDTRIB','Resíduo VLRCRMEN','Resíduo VLRDEDPENSAL','Situação honorários'] : [];
   const serv=[['Evento','Grupo','CPF','Nome','Matrícula','Regime','Situação','Plano prev.','Cargo','Lotação','Competência','Qtd campos','Campos divergentes','Casado por','Observação','Situação (manual)','Obs (manual)',...honCols]];
   for(const p of processed){
     const comp = p.ano? (p.ano+'/'+String(p.mes).padStart(2,'0')) : '';
@@ -1987,8 +2001,8 @@ function exportXLSX(){
     if(honorLoaded){
       const h=p.honor;
       const stMap={justificada:'Justificada',parcial:'Parcial',naoexplica:'Honorários não explica',sem:''};
-      if(h&&h.found) row.push(h.h774||'', h.h8999||'', h.resT!=null?h.resT:'', h.resC!=null?h.resC:'', stMap[h.status]||'');
-      else row.push('','','','','Sem honorários');
+      if(h&&h.found) row.push(h.h774||'', h.h8999||'', h.h4015||'', h.resT!=null?h.resT:'', h.resC!=null?h.resC:'', h.resP!=null?h.resP:'', stMap[h.status]||'');
+      else row.push('','','','','','','Sem honorários');
     }
     serv.push(row);
   }
@@ -2163,7 +2177,7 @@ $('#fileHonor').addEventListener('change',e=>{ if(e.target.files[0]) handleHonor
 $('#btnHonorClear').addEventListener('click',()=>{
   honorMap=new Map(); honorLoaded=false; hideJustified=false; lastHonorRecords=null;
   for(const p of processed) p.honor=null;
-  $('#honorStatus').innerHTML='Justifica divergências: <b>774</b> abate <code>VLRRENDTRIB</code> e <b>8999</b> <code>VLRCRMEN</code>.';
+  $('#honorStatus').innerHTML='Justifica divergências: <b>774</b> abate <code>VLRRENDTRIB</code>, <b>8999</b> <code>VLRCRMEN</code> e <b>4015</b> <code>VLRDEDPENSAL</code> (pensão alimentícia).';
   $('#honorbar').classList.remove('loaded');
   $('#btnHonorClear').classList.add('hidden');
   filterEvent.add('SANADAS');
@@ -2173,7 +2187,7 @@ $('#btnHonorClear').addEventListener('click',()=>{
 
 /* ---------- sessão (salvar/retomar) ---------- */
 function setHonorLoadedUI(n){
-  $('#honorStatus').innerHTML=`Folha carregada: <b>${n}</b> matrícula(s)/competência(s). Rubricas 774 e 8999 aplicadas; 4015 ignorada.`;
+  $('#honorStatus').innerHTML=`Folha carregada: <b>${n}</b> matrícula(s)/competência(s). Rubricas 774, 8999 e 4015 (pensão alimentícia) aplicadas.`;
   $('#honorbar').classList.add('loaded');
   $('#btnHonorClear').classList.remove('hidden');
   filterEvent.add('SANADAS');
@@ -2216,7 +2230,7 @@ function fillRulesForm(){
   $('#rApo').value = RULES.apoSameMonth;
   $('#rRub774').value = RULES.rubRendtrib;
   $('#rRub8999').value = RULES.rubCrmen;
-  $('#rRub4015').value = RULES.rubIgnore;
+  $('#rRub4015').value = RULES.rubPensal;
 }
 function reprocessAll(){
   if(honorLoaded && lastHonorRecords) honorMap = buildHonorMap(lastHonorRecords);
@@ -2229,7 +2243,7 @@ function applyRulesFromForm(){
   RULES.apoSameMonth = $('#rApo').value;
   RULES.rubRendtrib = onlyDigits($('#rRub774').value) || RULE_DEFAULTS.rubRendtrib;
   RULES.rubCrmen   = onlyDigits($('#rRub8999').value) || RULE_DEFAULTS.rubCrmen;
-  RULES.rubIgnore  = onlyDigits($('#rRub4015').value) || RULE_DEFAULTS.rubIgnore;
+  RULES.rubPensal  = onlyDigits($('#rRub4015').value) || RULE_DEFAULTS.rubPensal;
   saveRules(); fillRulesForm(); reprocessAll();
   flashRulesNote('Ajustes aplicados' + (processed.length?' e reprocessados':'') + '.');
 }
@@ -3185,13 +3199,30 @@ const INX_BUCKETS=[
   {k:'S-1202',   lab:'S-1202',     cls:'ev1202', chip:'c1202', card:'e1202', badge:'b1202', desc:'Remuneração — RPPS (ativo)'},
   {k:'S-1207',   lab:'S-1207',     cls:'ev1207', chip:'c1207', card:'e1207', badge:'b1207', desc:'Benefícios — RPPS (aposentado)'},
   {k:'REVISAR',  lab:'Revisar',    cls:'evrev',  chip:'cwarn', card:'ewarn', badge:'bwarn', desc:'Sem classificação automática'},
-  {k:'BENEFICIO',lab:'Benefícios', cls:'evben',  chip:'cign',  card:'eign',  badge:'bign',  desc:'Envio ao eSocial indefinido'}
+  {k:'BENEFICIO',lab:'Benefícios', cls:'evben',  chip:'cign',  card:'eign',  badge:'bign',  desc:'Envio ao eSocial indefinido'},
+  {k:'JUSTIFICADA',lab:'Justificadas', cls:'evjust', chip:'cjust', card:'ejust', badge:'bjust', desc:'Marcadas como justificadas'}
 ];
 function inxEsc(s){ return String(s==null?'':s).replace(/[&<>"]/g,function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); }
 // CPF sem pontuação (mais fácil de copiar), sempre com 11 dígitos
 function inxCpfFmt(c){ return padCpf(c)||'—'; }
 function inxBucketOf(ev){ return ev==='IGNORAR' ? 'BENEFICIO' : ev; }
 function inxBucketDef(k){ for(var i=0;i<INX_BUCKETS.length;i++) if(INX_BUCKETS[i].k===k) return INX_BUCKETS[i]; return INX_BUCKETS[3]; }
+/* movimentação manual, como no Confronto: evento escolhido à mão e situação (Justificada / Pendente).
+   guardado por competência neste navegador: esocial_inx_marks_v1 = {competencia:{cpf|matricula:{ev,st}}} */
+var INX_MARK_KEY='esocial_inx_marks_v1';
+function inxMarksAll(){ try{ return JSON.parse(localStorage.getItem(INX_MARK_KEY))||{}; }catch(e){ return {}; } }
+function inxMarkGet(key){ return ((inxMarksAll()[inxCompTxt||'-'])||{})[key]||{}; }
+function inxMarkSet(key,patch){
+  var a=inxMarksAll(), c=inxCompTxt||'-'; a[c]=a[c]||{};
+  var m=Object.assign({}, a[c][key]||{}, patch); if(!m.ev) delete m.ev; if(!m.st) delete m.st;
+  if(m.ev||m.st) a[c][key]=m; else delete a[c][key];
+  try{ localStorage.setItem(INX_MARK_KEY,JSON.stringify(a)); }catch(e){}
+}
+// grupo exibido: Justificada tem prioridade; depois o evento escolhido à mão; senão o automático
+function inxApplyMark(it){ var m=inxMarkGet(it.cpf+'|'+it.mat); it.manualEv=m.ev||''; it.st=m.st||'';
+  it.bucket = it.st==='justificada' ? 'JUSTIFICADA' : (it.manualEv || it.auto); }
+var INX_ORD={'BENEFICIO':0,'REVISAR':1,'S-1207':2,'S-1202':3,'S-1200':4,'JUSTIFICADA':5};
+function inxSort(){ inxItems.sort(function(a,b){ return (INX_ORD[a.bucket]-INX_ORD[b.bucket]) || (a.nome||'zzz').localeCompare(b.nome||'zzz'); }); }
 
 function inxRead(file){
   if(!baseRecs.length){ alert('Carregue primeiro a base de servidores (bloco "Base de servidores", na tela inicial).'); return; }
@@ -3236,14 +3267,13 @@ function inxCompute(rows,K){
     if(!rec && it.cpf){ var l=byCpf.get(it.cpf); if(l && l.length){ rec=l[0]; matchBy='CPF'; } }
     var compOrd=(it.ano&&it.mes)?(parseInt(it.ano,10)*12+(parseInt(it.mes,10)-1)):null;
     var cls=classify(rec,{NUMPENS:it.pens},compOrd);
-    it.rec=rec; it.matchBy=matchBy; it.cls=cls; it.bucket=inxBucketOf(cls.evento);
+    it.rec=rec; it.matchBy=matchBy; it.cls=cls; it.auto=inxBucketOf(cls.evento); inxApplyMark(it);
     it.nome=rec?(rec.NOME||''):''; it.tipovinc=rec?(rec.TIPOVINC||''):''; it.cargo=rec?(rec.CARGO||''):'';
     var cpfBase=rec?padCpf(rec.CPF):'';
     it.cpfDif=!!(rec && matchBy==='matrícula' && cpfBase && it.cpf && cpfBase!==it.cpf);
     inxItems.push(it);
   });
-  var ord={'BENEFICIO':0,'REVISAR':1,'S-1207':2,'S-1202':3,'S-1200':4};
-  inxItems.sort(function(a,b){ return (ord[a.bucket]-ord[b.bucket]) || (a.nome||'zzz').localeCompare(b.nome||'zzz'); });
+  inxSort();
   inxFilter=new Set(); inxSearchT=''; if($('#inxSearch')) $('#inxSearch').value='';
   $('#inxComp').textContent=inxCompTxt||'—';
   $('#inxResults').classList.remove('hidden');
@@ -3279,9 +3309,23 @@ function inxRender(){
   });
   if(!list.length){ $('#inxList').innerHTML='<div class="none-shown">Nenhum v&iacute;nculo com esse filtro.</div>'; return; }
   $('#inxList').innerHTML=list.map(function(i){
-    var b=inxBucketDef(i.bucket), isBen=(i.bucket==='BENEFICIO');
+    var b=inxBucketDef(i.bucket), isBen=(i.bucket==='BENEFICIO'), key=i.cpf+'|'+i.mat;
     var badge=isBen ? '<span class="inx-ben">BENEF&Iacute;CIOS</span>' : '<span class="badge '+b.badge+'">'+b.lab+'</span>';
-    return '<div class="inx-row '+b.cls+'">'+
+    // mesmos controles do Confronto: mover para outro evento (↺ volta ao automático) e marcar situação
+    var evOpts=['S-1200','S-1202','S-1207','REVISAR','BENEFICIO'].map(function(k){
+      return '<option value="'+k+'"'+(i.manualEv===k?' selected':'')+'>'+inxBucketDef(k).lab+'</option>'; }).join('');
+    var ctrls='<div class="inx-ctrls">'+
+      '<select class="ev-edit'+(i.manualEv?' on':'')+'" data-inx-ev="'+inxEsc(key)+'" title="Mover para outro evento">'+
+        '<option value="">&#8634; auto ('+inxBucketDef(i.auto).lab+')</option>'+evOpts+'</select>'+
+      '<select class="st-edit'+(i.st?' on':'')+'" data-inx-st="'+inxEsc(key)+'" title="Marcar situação">'+
+        '<option value="">situação…</option>'+
+        '<option value="justificada"'+(i.st==='justificada'?' selected':'')+'>Justificada</option>'+
+        '<option value="pendente"'+(i.st==='pendente'?' selected':'')+'>Pendente</option></select>'+
+      (i.manualEv?'<span class="tag manual">evento alterado à mão</span>':'')+
+      (i.st==='pendente'?'<span class="tag st-pend">pendente</span>':'')+
+      (i.auto==='BENEFICIO' && !isBen?'<span class="tag">v&iacute;nculo de benef&iacute;cios</span>':'')+
+    '</div>';
+    return '<div class="inx-row '+b.cls+(i.manualEv||i.st?' manedit':'')+'">'+
       '<div class="inx-top">'+badge+
         '<span class="inx-name">'+inxEsc(i.nome)+'</span>'+
         '<span class="inx-mat">'+inxEsc(i.mat)+'</span>'+
@@ -3300,6 +3344,7 @@ function inxRender(){
       '</div>'+
       (isBen?'<div class="inx-benmsg">Tipo de v&iacute;nculo <b>BENEF&Iacute;CIOS</b> &mdash; envio ao eSocial ainda indefinido.</div>':'')+
       (i.cls.tempNote?'<div class="inx-note">'+inxEsc(i.cls.tempNote)+'</div>':'')+
+      ctrls+
       obsField('inexistentes',inxCompTxt,i.cpf+'|'+i.mat)+
     '</div>';
   }).join('');
@@ -3308,14 +3353,16 @@ function inxRender(){
 
 function inxExport(){
   if(!inxItems.length) return;
-  var aoa=[['Evento sugerido','Nome','Matrícula','CPF','Tipo de vínculo','Cargo','Regime','Plano','Situação','CRMEN','Linhas','Observação']];
+  var lab=function(k){ return k==='BENEFICIO'?'BENEFÍCIOS (indefinido)': k==='JUSTIFICADA'?'JUSTIFICADA':k; };
+  var aoa=[['Grupo atual','Evento automático','Evento alterado à mão','Situação marcada','Nome','Matrícula','CPF','Tipo de vínculo','Cargo','Regime','Plano','Situação na base','CRMEN','Linhas','Nota da classificação','Observação']];
   inxItems.forEach(function(i){ aoa.push([
-    i.bucket==='BENEFICIO'?'BENEFÍCIOS (indefinido)':i.bucket, i.nome||'', i.mat, i.cpf,
-    i.tipovinc||'', i.cargo||'', i.cls.regime||'', i.cls.plano||'', i.cls.situacao||'',
-    (i.crs||[]).join(', '), i.n, i.cls.tempNote || (i.rec?'':'não localizado na base de servidores') ]); });
+    lab(i.bucket), lab(i.auto), i.manualEv?lab(i.manualEv):'', i.st==='justificada'?'Justificada':(i.st==='pendente'?'Pendente':''),
+    i.nome||'', i.mat, i.cpf, i.tipovinc||'', i.cargo||'', i.cls.regime||'', i.cls.plano||'', i.cls.situacao||'',
+    (i.crs||[]).join(', '), i.n, i.cls.tempNote || (i.rec?'':'não localizado na base de servidores'),
+    obsGet('inexistentes',inxCompTxt,i.cpf+'|'+i.mat) ]); });
   var wb=XLSX.utils.book_new(), ws=XLSX.utils.aoa_to_sheet(aoa);
-  ws['!cols']=[{wch:22},{wch:32},{wch:14},{wch:13},{wch:16},{wch:22},{wch:10},{wch:12},{wch:26},{wch:16},{wch:7},{wch:44}];
-  ws['!autofilter']={ref:'A1:L'+aoa.length};
+  ws['!cols']=[{wch:22},{wch:20},{wch:18},{wch:14},{wch:32},{wch:14},{wch:13},{wch:16},{wch:22},{wch:10},{wch:12},{wch:26},{wch:16},{wch:7},{wch:44},{wch:40}];
+  ws['!autofilter']={ref:'A1:P'+aoa.length};
   XLSX.utils.book_append_sheet(wb,ws,'Nao localizados');
   XLSX.writeFile(wb,'nao_localizados_esocial_'+((inxCompTxt||'').replace(/[\/ ,]/g,'-')||'lista')+'.xlsx');
 }
@@ -3743,9 +3790,10 @@ function snapInexist(){
   var c=inxCounts();
   var itens=inxItems.map(function(i){ return {matricula:i.mat||'', tipo:i.bucket,
     valor:{situacao:(i.cls&&i.cls.situacao)||'', tipo_vinculo:i.tipovinc||'', crmen:(i.crs||[]).join(', '),
-           linhas:i.n||1, fora_da_base:!i.rec, observacao:obsLimpa(obsGet('inexistentes',inxCompTxt,i.cpf+'|'+i.mat))}}; });
+           linhas:i.n||1, fora_da_base:!i.rec, observacao:obsLimpa(obsGet('inexistentes',inxCompTxt,i.cpf+'|'+i.mat)),
+           evento_automatico:i.auto, evento_manual:i.manualEv||'', situacao_manual:i.st||''}}; });
   snapSave('inexistentes', inxCompTxt, {total:c.total, s1200:c['S-1200']||0, s1202:c['S-1202']||0, s1207:c['S-1207']||0,
-    revisar:c['REVISAR']||0, beneficios:c['BENEFICIO']||0, fora_da_base:c.semBase||0}, itens);
+    revisar:c['REVISAR']||0, beneficios:c['BENEFICIO']||0, justificadas:c['JUSTIFICADA']||0, fora_da_base:c.semBase||0}, itens);
 }
 function snapInss(){
   if(!inssFolha.size || !inssEso.size){ alert('Importe a folha RGPS e o S-5001 antes de gravar.'); return; }
@@ -3896,6 +3944,16 @@ document.addEventListener('click',function(e){
   if(pop && !pop.classList.contains('hidden') && !e.target.closest('.lm-pal')) pop.classList.add('hidden');   // clique fora fecha
 });
 palMarcar(palAtual());
+
+/* Não localizados: mexer no seletor de evento ou de situação move o vínculo de grupo na hora */
+(function(){ var box=document.getElementById('inxList'); if(!box) return;
+  box.addEventListener('change',function(e){
+    var ev=e.target.closest('[data-inx-ev]'), st=e.target.closest('[data-inx-st]'); if(!ev && !st) return;
+    var key=ev? ev.getAttribute('data-inx-ev') : st.getAttribute('data-inx-st');
+    inxMarkSet(key, ev? {ev:ev.value} : {st:st.value});
+    inxItems.forEach(function(x){ if(x.cpf+'|'+x.mat===key) inxApplyMark(x); });
+    inxSort(); inxRender();
+  }); })();
 
 /* init */
 /* casca do app: as telas das ferramentas passam a viver DENTRO do centro do menu,
