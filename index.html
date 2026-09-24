@@ -364,6 +364,13 @@
   #tool-panorama .empty b{color:var(--h-cy)}
   #tool-panorama .none-shown{color:var(--h-mu)}
   .hud-defs{position:absolute;width:0;height:0;overflow:hidden}
+  /* selo "em construção" sob o título (tela publicada, conteúdo ainda em definição) */
+  .pnr-wip{display:inline-flex;align-items:center;gap:8px;margin-top:8px;padding:4px 12px;border:1px solid rgba(255,181,71,.7);border-radius:999px;
+    color:#FFB547;font-size:10.5px;font-weight:700;letter-spacing:.24em;text-transform:uppercase;background:rgba(255,181,71,.08);
+    box-shadow:0 0 12px rgba(255,181,71,.25),inset 0 0 8px rgba(255,181,71,.12);text-shadow:0 0 6px rgba(255,181,71,.5)}
+  .pnr-wip i{width:7px;height:7px;border-radius:50%;background:#FFB547;box-shadow:0 0 8px #FFB547;animation:pnrWip 1.6s ease-in-out infinite}
+  @keyframes pnrWip{50%{opacity:.25}}
+  @media(prefers-reduced-motion:reduce){ .pnr-wip i{animation:none} }
   /* cards = anéis com marcações; clicar recorta os gráficos */
   .pnr-kpis{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:14px;margin:22px 0 8px}
   .pnr-kpi svg{width:100%;max-width:132px;height:auto}
@@ -1547,6 +1554,7 @@
     <div class="brand">
       <div class="eyebrow">PGE-RJ &middot; indicadores da base e das compet&ecirc;ncias gravadas</div>
       <h1>Panorama</h1>
+      <div class="pnr-wip" title="Tela em constru&ccedil;&atilde;o: os indicadores ainda podem mudar"><i aria-hidden="true"></i>Em constru&ccedil;&atilde;o</div>
     </div>
     <div class="basebox" id="pnrFonte">&mdash;</div>
   </header>
