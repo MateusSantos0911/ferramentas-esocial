@@ -341,6 +341,34 @@
   html[data-theme="dark"] .inx-alert{background:rgba(180,83,9,.18);border-color:rgba(245,200,107,.42);color:#F3CE8C}
   html[data-theme="dark"] .inx-alert b{color:#F3CE8C}
   html[data-theme="dark"] .inx-benmsg{background:rgba(180,83,9,.32);color:#F7D9A6}
+  /* ===== letreiro da tela inicial: destaques da base e das competências gravadas ===== */
+  .lm-ticker{position:fixed;left:280px;right:0;bottom:0;z-index:3;height:46px;display:flex;align-items:stretch;overflow:hidden;
+    background:linear-gradient(90deg,var(--brand-navy),var(--brand) 140%);color:var(--brand-on1);
+    box-shadow:0 -6px 18px rgba(11,31,58,.18);font-size:13.5px}
+  .lm-main.tool .lm-ticker{display:none}
+  .lm-main.has-ticker:not(.tool){padding-bottom:78px}
+  .lm-tk-lab{flex:none;display:flex;align-items:center;gap:8px;padding:0 16px 0 18px;font-size:10.5px;font-weight:700;
+    letter-spacing:.16em;text-transform:uppercase;color:#fff;background:rgba(0,0,0,.22);position:relative}
+  .lm-tk-lab::after{content:"";position:absolute;right:-14px;top:0;bottom:0;width:14px;background:linear-gradient(90deg,rgba(0,0,0,.22),transparent)}
+  .lm-tk-dot{width:8px;height:8px;border-radius:50%;background:#34D399;box-shadow:0 0 0 0 rgba(52,211,153,.7);animation:lmtkPulse 2s infinite}
+  @keyframes lmtkPulse{0%{box-shadow:0 0 0 0 rgba(52,211,153,.7)}70%{box-shadow:0 0 0 8px rgba(52,211,153,0)}100%{box-shadow:0 0 0 0 rgba(52,211,153,0)}}
+  .lm-tk-view{flex:1;min-width:0;overflow:hidden;position:relative;display:flex;align-items:center;
+    -webkit-mask-image:linear-gradient(90deg,transparent 0,#000 40px,#000 calc(100% - 40px),transparent 100%);
+            mask-image:linear-gradient(90deg,transparent 0,#000 40px,#000 calc(100% - 40px),transparent 100%)}
+  .lm-tk-track{display:flex;align-items:center;white-space:nowrap;will-change:transform;animation:lmtkRoll 60s linear infinite}
+  .lm-ticker:hover .lm-tk-track{animation-play-state:paused}
+  @keyframes lmtkRoll{from{transform:translateX(0)}to{transform:translateX(-50%)}}
+  .lm-tk-item{display:inline-flex;align-items:center;gap:6px;padding:0 4px}
+  .lm-tk-item b{color:#fff;font-weight:700;font-variant-numeric:tabular-nums}
+  .lm-tk-item .up{color:#FCA5A5;font-weight:700}
+  .lm-tk-item .down{color:#6EE7B7;font-weight:700}
+  .lm-tk-item .tag-n{font-size:10px;font-weight:700;letter-spacing:.08em;text-transform:uppercase;padding:2px 7px;border-radius:999px;
+    background:rgba(255,255,255,.14);color:#fff}
+  .lm-tk-sep{display:inline-block;margin:0 18px;color:var(--brand-focus);font-size:9px}
+  /* quem pediu menos movimento no sistema: uma frase por vez, trocando com fade */
+  .lm-ticker.calmo .lm-tk-track{animation:none}
+  .lm-ticker.calmo .lm-tk-item{padding-left:18px;transition:opacity .4s}
+  @media(max-width:900px){ .lm-ticker{left:0} }
   /* resumo da base: sem caixas — os gráficos ficam soltos sobre a tela inicial */
   .lm-panel{position:relative;z-index:1;width:100%;max-width:1180px;margin:auto}
   .lmb-title{font-size:13px;font-weight:700;letter-spacing:.14em;text-transform:uppercase;color:#7A8698}
@@ -783,6 +811,10 @@
           </div>
         </section>
         <div class="lm-panel" id="menuPanel"></div>
+        <div class="lm-ticker hidden" id="lmTicker" role="marquee" aria-label="Destaques da base e das competências gravadas">
+          <span class="lm-tk-lab"><i class="lm-tk-dot" aria-hidden="true"></i>Em números</span>
+          <div class="lm-tk-view"><div class="lm-tk-track" id="lmTkTrack"></div></div>
+        </div>
       </main>
     </div>
   </div>
@@ -1530,6 +1562,7 @@ function updateMenuBaseUI(){
     if(btn) btn.textContent='Carregar base';
   }
   if(typeof renderMenuBase==='function') renderMenuBase();
+  if(typeof lmtRender==='function') lmtRender();   // letreiro: só quando a base muda (não a cada filtro)
 }
 function loadBaseAsync(){
   if(!window.indexedDB) return;
@@ -3184,6 +3217,7 @@ function initCloud(){
   Cloud.init();
   Cloud.onChange(function(user,ev){
     updateCloudBtns(); updateMenuCloudUI();
+    if(typeof lmtCarregarNuvem==='function') lmtCarregarNuvem();   // letreiro busca as competências gravadas
     // voltou pelo link de redefinicao: exige a nova senha antes de liberar o app
     if(ev==='PASSWORD_RECOVERY'){ openPwModal(true); return; }
     if(user && window.__gateAuthOk) window.__gateAuthOk();  // login unico: sessao da nuvem libera o menu
@@ -3750,6 +3784,7 @@ async function snapSave(ferramenta, competencia, resumo, itens){
       if(ins && ins.error) throw ins.error;
     }
     alert('Competência '+comp+' gravada na nuvem.\n'+SNAP_NOMES[ferramenta]+' · '+itens.length+' item(ns) de detalhe.');
+    if(typeof lmtCarregarNuvem==='function') lmtCarregarNuvem();   // letreiro já mostra a gravação nova
   }catch(e){
     var m=String((e&&e.message)||e);
     if(/relation .* does not exist|competencia_snapshot|42P01/i.test(m)) m='as tabelas ainda não existem no Supabase — rode o arquivo schema-competencias.sql no SQL Editor.';
@@ -3954,6 +3989,114 @@ palMarcar(palAtual());
     inxItems.forEach(function(x){ if(x.cpf+'|'+x.mat===key) inxApplyMark(x); });
     inxSort(); inxRender();
   }); })();
+
+/* ---------- letreiro da tela inicial ("Em números") ----------
+   junta destaques da base de servidores (calculados aqui) com os resumos gravados nas competências
+   (nuvem, só com login). Só números agregados — nenhum nome, CPF ou matrícula aparece. */
+var lmtNuvem=[], lmtAssinatura='', lmtTimer=null;
+function lmtN(n){ return Number(n||0).toLocaleString('pt-BR'); }
+// número em negrito + palavra no singular ou plural ("1 admissão", "3 admissões")
+function lmtQ(n,um,varios){ return '<b>'+lmtN(n)+'</b> '+(Number(n)===1?um:varios); }
+function lmtCompOrd(c){ var m=/^(\d{2})\/(\d{4})$/.exec(String(c||'')); return m? (+m[2])*12+(+m[1]-1) : -1; }
+function lmtFatosBase(){
+  if(!baseRecs.length) return [];
+  var F=[], hoje=new Date(), ordHoje=hoje.getFullYear()*12+hoje.getMonth(), ano=hoje.getFullYear();
+  var cpfs=new Set(), porCpf=new Map(), sit={ATIVO:0,INATIVO:0,FALECIDO:0,VACANCIA:0,ND:0}, cat=new Map();
+  var rgpsAt=new Set(), rppsAt=new Set(), rppsInat=new Set(), procAt=new Set();
+  var benef=0, adm12=0, aposAno=0, aposAnt=0, somaCasa=0, nCasa=0, antigo=null;
+  baseRecs.forEach(function(r){
+    var cpf=r.CPF||'', s=lmbSitOf(r), g=lmbRegOf(r), c=lmbCatOf(r);
+    if(cpf){ cpfs.add(cpf); porCpf.set(cpf,(porCpf.get(cpf)||0)+1); }
+    sit[s]++; cat.set(c,(cat.get(c)||0)+1);
+    if(s==='ATIVO' && cpf){
+      if(g==='RGPS') rgpsAt.add(cpf); else if(g==='RPPS') rppsAt.add(cpf);
+      if(lmbNorm(c).indexOf('PROCURADOR')>=0) procAt.add(cpf);
+      var a=mord(r.DTADM);
+      if(a && a.ord<=ordHoje){ somaCasa+=(ordHoje-a.ord)/12; nCasa++; if(ordHoje-a.ord<=12) adm12++; if(!antigo||a.ord<antigo.ord) antigo=a; }
+    }
+    if(s==='INATIVO' && g==='RPPS' && cpf) rppsInat.add(cpf);
+    if(lmbNorm(r.TIPOVINC).indexOf('BENEFIC')>=0) benef++;
+    var ap=mord(r.DTAPOSENT); if(ap){ if(ap.y===ano) aposAno++; else if(ap.y===ano-1) aposAnt++; }
+  });
+  var multi=0; porCpf.forEach(function(n){ if(n>1) multi++; });
+  F.push(lmtQ(baseRecs.length,'vínculo','vínculos')+' e '+lmtQ(cpfs.size,'servidor','servidores')+' na base');
+  if(sit.ATIVO||sit.INATIVO) F.push(lmtQ(sit.ATIVO,'ativo','ativos')+' · '+lmtQ(sit.INATIVO,'inativo','inativos')+(sit.FALECIDO?' · '+lmtQ(sit.FALECIDO,'falecido','falecidos'):''));
+  if(rgpsAt.size) F.push(lmtQ(rgpsAt.size,'servidor','servidores')+' do RGPS em atividade');
+  if(rppsAt.size) F.push(lmtQ(rppsAt.size,'servidor','servidores')+' do RPPS em atividade'+(rppsInat.size?' e '+lmtQ(rppsInat.size,'aposentado','aposentados'):''));
+  if(procAt.size) F.push(lmtQ(procAt.size,'procurador','procuradores')+' em atividade');
+  var top=Array.from(cat.entries()).sort(function(a,b){ return b[1]-a[1]; })[0];
+  if(top) F.push('Maior categoria: <b>'+lmbEsc(top[0])+'</b> — '+lmtN(top[1])+(top[1]===1?' vínculo (':' vínculos (')+lmbPctTxt(top[1],baseRecs.length)+')');
+  if(nCasa) F.push('Tempo médio de casa de quem está ativo: <b>'+(somaCasa/nCasa).toFixed(1).replace('.',',')+' anos</b>');
+  if(antigo) F.push('Vínculo ativo mais antigo: desde <b>'+antigo.y+'</b>');
+  if(adm12) F.push(lmtQ(adm12,'admissão','admissões')+' nos últimos 12 meses');
+  if(aposAno) F.push(lmtQ(aposAno,'aposentadoria registrada','aposentadorias registradas')+' em '+ano);
+  else if(aposAnt) F.push(lmtQ(aposAnt,'aposentadoria registrada','aposentadorias registradas')+' em '+(ano-1));
+  if(multi) F.push(lmtQ(multi,'servidor','servidores')+' com mais de um vínculo');
+  if(benef) F.push(lmtQ(benef,'vínculo','vínculos')+' de benefícios');
+  return F;
+}
+function lmtFatosNuvem(rows){
+  var F=[], por={};
+  (rows||[]).forEach(function(r){ (por[r.ferramenta]=por[r.ferramenta]||[]).push(r); });
+  Object.keys(por).forEach(function(k){ por[k].sort(function(a,b){ return lmtCompOrd(b.competencia)-lmtCompOrd(a.competencia); }); });
+  var tag=function(t){ return '<span class="tag-n">'+lmbEsc(t)+'</span>'; };
+  // seta de tendência: verde quando melhora (para pendências, cair é bom)
+  var tend=function(atual,ant,menorMelhor){ atual=+atual||0; ant=+ant||0; if(atual===ant) return ' <b>estável</b>';
+    var caiu=atual<ant, bom=menorMelhor?caiu:!caiu;
+    return ' <span class="'+(bom?'down':'up')+'">'+(caiu?'▼':'▲')+' '+lmtN(Math.abs(atual-ant))+'</span>'; };
+  var e=por.envio||[];
+  if(e[0]){ var R=e[0].resumo||{}, P=e[1]?(e[1].resumo||{}):null;
+    if(R.esperados) F.push(tag('Envio '+e[0].competencia)+' <b>'+lmtN(R.enviados)+'</b> de '+lmtN(R.esperados)+' esperados enviados ('+lmbPctTxt(R.enviados,R.esperados)+')');
+    if(R.pendentes!=null) F.push(tag('Envio '+e[0].competencia)+' '+lmtQ(R.pendentes,'pendência','pendências')+(P?tend(R.pendentes,P.pendentes,true)+' em relação a '+e[1].competencia:''));
+    if(R.pendencias_resolvidas) F.push(tag('Envio '+e[0].competencia)+' '+lmtQ(R.pendencias_resolvidas,'pendência resolvida','pendências resolvidas'));
+  }
+  var c=por.confronto||[];
+  if(c[0]){ var C=c[0].resumo||{}, g=C.por_grupo||{}, san=g.SANADAS||0;
+    F.push(tag('Confronto '+c[0].competencia)+' '+lmtQ(C.total,'divergência','divergências')+(san?', '+lmtQ(san,'sanada','sanadas'):''));
+    if(c[1]) F.push(tag('Confronto')+' divergências de '+c[1].competencia+' para '+c[0].competencia+':'+tend(C.total,(c[1].resumo||{}).total,true));
+  }
+  var x=por.inexistentes||[];
+  if(x[0]){ var X=x[0].resumo||{};
+    F.push(tag('Não localizados '+x[0].competencia)+' '+lmtQ(X.total,'vínculo','vínculos')+(X.beneficios?' · '+lmtN(X.beneficios)+' de benefícios':'')+(X.justificadas?' · '+lmtN(X.justificadas)+(X.justificadas===1?' justificado':' justificados'):'')); }
+  var s=por.inss||[];
+  if(s[0]){ var D=(s[0].resumo||{}).dctf_esocial||{};
+    if(D.segEmp!=null) F.push(tag('DCTFWeb '+s[0].competencia)+' segurados <b>R$ '+fmtBR(D.segEmp)+'</b>'+(D.patronalLiq!=null?' · patronal <b>R$ '+fmtBR(D.patronalLiq)+'</b>':'')); }
+  if((rows||[]).length) F.push(lmtQ(rows.length,'competência gravada','competências gravadas')+' na nuvem');
+  return F;
+}
+function lmtRender(){
+  var el=document.getElementById('lmTicker'), tr=document.getElementById('lmTkTrack'), main=document.querySelector('#gateMenu .lm-main');
+  if(!el||!tr) return;
+  var fatos=lmtFatosBase().concat(lmtNuvem), ass=fatos.join('|');
+  if(ass===lmtAssinatura) return;                 // nada mudou: não reinicia o letreiro
+  lmtAssinatura=ass;
+  if(lmtTimer){ clearInterval(lmtTimer); lmtTimer=null; }
+  if(!fatos.length){ el.classList.add('hidden'); if(main) main.classList.remove('has-ticker'); tr.innerHTML=''; return; }
+  el.classList.remove('hidden'); if(main) main.classList.add('has-ticker');
+  var calmo=!!(window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches);
+  el.classList.toggle('calmo',calmo);
+  if(calmo){   // menos movimento: uma frase por vez
+    var i=0; tr.innerHTML='<span class="lm-tk-item">'+fatos[0]+'</span>';
+    lmtTimer=setInterval(function(){ var it=tr.firstChild; if(!it) return; i=(i+1)%fatos.length; it.style.opacity=0;
+      setTimeout(function(){ it.innerHTML=fatos[i]; it.style.opacity=1; },400); },6000);
+    return;
+  }
+  var sep='<span class="lm-tk-sep" aria-hidden="true">&#9670;</span>';
+  var uma=fatos.map(function(f){ return '<span class="lm-tk-item">'+f+'</span>'; }).join(sep)+sep;
+  // duas cópias lado a lado: a faixa anda metade do caminho e recomeça sem emenda
+  tr.innerHTML='<span>'+uma+'</span><span aria-hidden="true">'+uma+'</span>';
+  var chars=(tr.firstChild.textContent||'').length;
+  tr.style.animationDuration=Math.max(25, Math.round(chars*0.13))+'s';   // ~50px/s, bom para leitura
+}
+async function lmtCarregarNuvem(){
+  if(!(window.Cloud && Cloud.on && Cloud.on())){ lmtNuvem=[]; lmtRender(); return; }
+  try{
+    var r=await Cloud.from('competencia_snapshot').select('ferramenta,competencia,resumo,atualizado_em')
+      .order('atualizado_em',{ascending:false}).limit(80);
+    lmtNuvem=(r && !r.error)? lmtFatosNuvem(r.data||[]) : [];
+  }catch(e){ lmtNuvem=[]; }
+  lmtRender();
+}
 
 /* init */
 /* casca do app: as telas das ferramentas passam a viver DENTRO do centro do menu,
