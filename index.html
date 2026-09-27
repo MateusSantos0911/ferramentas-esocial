@@ -69,6 +69,30 @@
   .basebox button:hover{border-color:var(--ink);color:var(--ink)}
   .basebox .snap-btn{border-color:var(--action);color:var(--action);font-weight:600}
   .basebox .snap-btn:hover{background:var(--action);border-color:var(--action);color:#fff}
+  /* restaurar competência gravada */
+  .basebox .rest-btn{border-color:var(--line);color:var(--ink)}
+  .basebox .rest-btn:hover{border-color:var(--action);color:var(--action)}
+  .rest-modal{position:fixed;inset:0;z-index:2147483647;background:rgba(6,12,24,.62);display:flex;align-items:center;justify-content:center;padding:20px}
+  .rest-modal.hidden{display:none}
+  .rest-box{width:min(640px,100%);max-height:calc(100vh - 40px);overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);
+    border-radius:14px;padding:22px 22px 18px;position:relative;box-shadow:0 20px 60px rgba(0,0,0,.35)}
+  .rest-x{position:absolute;top:10px;right:12px;background:none;border:0;color:var(--muted);font-size:22px;line-height:1;cursor:pointer}
+  .rest-h{font-size:17px;font-weight:700;margin:0 30px 4px 0}
+  .rest-sub{font-size:12.5px;color:var(--muted);margin:0 0 14px;line-height:1.5}
+  .rest-list{display:flex;flex-direction:column;gap:8px}
+  .rest-row{display:flex;align-items:center;gap:14px;border:1px solid var(--line);border-radius:10px;padding:10px 12px;transition:border-color .12s}
+  .rest-row:hover{border-color:var(--action)}
+  .rest-comp{font-family:var(--mono);font-size:15px;font-weight:700;color:var(--action);min-width:78px}
+  .rest-info{flex:1;min-width:0;font-size:12.5px;line-height:1.45}
+  .rest-info small{display:block;color:var(--muted);font-size:11.5px}
+  .rest-old{display:inline-block;margin-top:4px;font-size:10.5px;font-weight:700;color:#B45309;background:#FFF7ED;border:1px solid #FED7AA;border-radius:999px;padding:1px 8px}
+  .rest-go{background:var(--action);color:#fff;border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
+  .rest-go:disabled{opacity:.6;cursor:default}
+  .rest-msg{font-size:13px;color:var(--muted);padding:14px 2px;line-height:1.5}
+  .snap-rest{display:flex;gap:10px;align-items:flex-start;margin:0 0 16px;padding:10px 14px;border:1px solid var(--action);border-left-width:4px;border-radius:10px;
+    background:var(--action-soft);color:var(--ink);font-size:12.5px;line-height:1.55;position:relative;z-index:1}
+  .snap-rest .ic{font-size:16px;line-height:1.2;color:var(--action)}
+  .snap-rest button{margin-left:auto;background:none;border:0;cursor:pointer;color:var(--muted);font-size:18px;line-height:1;padding:0 2px}
 
   /* dropzone */
   .drop{background:var(--surface);border:1.5px dashed var(--line);border-radius:8px;padding:18px 20px;text-align:center;cursor:pointer;transition:border-color .12s,background .12s}
@@ -1251,7 +1275,7 @@
       <button id="btnBase">Atualizar base de servidores</button>
       <button id="btnRules">⚙ Ajustes</button>
       <button id="cmpClear">Limpar dados</button>
-      <button class="snap-btn" data-snap="confronto" type="button">&#9729; Gravar competência</button>
+      <button class="snap-btn" data-snap="confronto" type="button">&#9729; Gravar competência</button> <button class="rest-btn" data-snap-rest="confronto" type="button" title="Reabrir uma competência gravada na nuvem">&#8634; Restaurar</button>
       <input type="file" id="fileBase" accept=".csv" class="hidden">
     </div>
   </header>
@@ -1432,7 +1456,7 @@
       <h1>Confer&ecirc;ncia de INSS (RGPS)</h1>
     </div>
     <div class="basebox">Compet&ecirc;ncia: <input id="inssComp" class="inss-comp" placeholder="MM/AAAA" maxlength="7" autocomplete="off"><br>
-      <button id="inssClear">Limpar</button> <button class="snap-btn" data-snap="inss" type="button">&#9729; Gravar competência</button></div>
+      <button id="inssClear">Limpar</button> <button class="snap-btn" data-snap="inss" type="button">&#9729; Gravar competência</button> <button class="rest-btn" data-snap-rest="inss" type="button" title="Reabrir uma competência gravada na nuvem">&#8634; Restaurar</button></div>
   </header>
 
   <div class="rules" id="inssParams">
@@ -1549,7 +1573,7 @@
     <div class="basebox">
       Compet&ecirc;ncia: <b id="envComp">&mdash;</b><br>
       <button id="envClear">Limpar</button>
-      <button class="snap-btn" data-snap="envio" type="button">&#9729; Gravar competência</button>
+      <button class="snap-btn" data-snap="envio" type="button">&#9729; Gravar competência</button> <button class="rest-btn" data-snap-rest="envio" type="button" title="Reabrir uma competência gravada na nuvem">&#8634; Restaurar</button>
     </div>
   </header>
 
@@ -1610,7 +1634,7 @@
     <div class="basebox">
       Compet&ecirc;ncia: <b id="inxComp">&mdash;</b><br>
       <button id="inxClear">Limpar</button>
-      <button class="snap-btn" data-snap="inexistentes" type="button">&#9729; Gravar competência</button>
+      <button class="snap-btn" data-snap="inexistentes" type="button">&#9729; Gravar competência</button> <button class="rest-btn" data-snap-rest="inexistentes" type="button" title="Reabrir uma competência gravada na nuvem">&#8634; Restaurar</button>
     </div>
   </header>
 
@@ -2418,7 +2442,7 @@ $('#groups').addEventListener('input',e=>{
 });
 
 function clearDivergences(){
-  processed=[]; competencia=''; searchTerm=''; manualOverrides.clear(); manualStatus.clear(); manualObs.clear();
+  processed=[]; snapRestBannerOff('confronto'); competencia=''; searchTerm=''; manualOverrides.clear(); manualStatus.clear(); manualObs.clear();
   filterEvent = new Set(DISPLAY_ORDER);
   $('#search').value='';
   document.querySelectorAll('.chip').forEach(c=>c.setAttribute('aria-pressed','true'));
@@ -2770,6 +2794,7 @@ let envFiles=[]; let envTab='afazer'; let envSearch='';
 let envPend=new Map();            // cpf -> motivo (marcado como NÃO enviado de fato)
 let envSent=new Map();            // cpf -> 1 (confirmado ENVIADO na mensageria)
 let envResolved=new Map();        // cpf -> {motivo, em} (pendência resolvida — guarda o histórico)
+let envSemCpf=new Set();          // chaves "000000nnnnn" de quem voltou da nuvem sem estar na base (a tela mostra "—")
 let envPageSize=10, envPage=1;
 const ENV_PEND_KEY='esocial_env_pend', ENV_SENT_KEY='esocial_env_sent', ENV_RES_KEY='esocial_env_resolved';
 function envComp(){ return (envFolha.find(function(x){return x.comp;})||{}).comp||''; }
@@ -2844,7 +2869,7 @@ function envCompute(){
   var ger=new Set(envGerado.keys());
   var fol=new Map();
   envFolha.forEach(function(x){
-    if(!fol.has(x.cpf)) fol.set(x.cpf,{cpf:x.cpf,nome:x.nome,categoria:x.categoria,situacao:x.situacao,comp:x.comp,mats:[]});
+    if(!fol.has(x.cpf)) fol.set(x.cpf,{cpf:x.cpf,nome:x.nome,categoria:x.categoria,situacao:x.situacao,comp:x.comp,mats:[], semCpf:envSemCpf.has(x.cpf)});
     var o=fol.get(x.cpf), mt=(x.numfunc||'')+'/'+(x.numvinc||''); if(mt!=='/'&&o.mats.indexOf(mt)<0) o.mats.push(mt);
   });
   var enviados=[], naoEnviado=[], pend=[], naoGerado=[], resolvidas=[], geradosN=0, restanteN=0;
@@ -2891,7 +2916,7 @@ function envPersonHtml(o){
   else { acts=(o.gerado?'<button class="env-toggle send" data-sent="'+o.cpf+'">✓ marcar enviado</button>':'')+'<button class="env-toggle" data-pend="'+o.cpf+'">marcar pendente</button>'; }
   var reason=o.pend?'<div class="env-reason"><label>Motivo do não envio / da pendência</label><textarea class="env-reason-input" data-cpf="'+o.cpf+'" rows="2" placeholder="Descreva por que ainda não foi enviado…">'+(o.motivo||'').replace(/</g,'&lt;')+'</textarea></div>':'';
   return '<div class="env-item'+(o.pend?' pend':'')+(o.enviado?' sent':'')+'">'+
-    '<div class="env-row"><div class="env-id"><span class="env-cpf mono">'+o.cpf+'</span> <span class="env-nome">'+(o.nome||'—')+'</span> '+badge+tip+
+    '<div class="env-row"><div class="env-id"><span class="env-cpf mono">'+(o.semCpf?'—':o.cpf)+'</span> <span class="env-nome">'+(o.nome||'—')+'</span> '+badge+tip+
       '<div class="env-meta">'+((o.mats&&o.mats.length)?o.mats.join(', ')+' · ':'')+(o.categoria||'')+(o.situacao?' · '+o.situacao:'')+'</div></div>'+
       '<div class="env-act">'+acts+'</div></div>'+reason+resInfo+
     '<div class="env-obs">'+obsField('envio',envComp(),o.cpf)+'</div></div>';
@@ -2931,7 +2956,7 @@ function envRenderList(c){
     el.innerHTML = bulk + '<div class="dsh-none">'+empty+'</div>'; return;
   }
   var body = isFora
-    ? '<table class="dsh-table"><thead><tr><th>CPF</th><th>Nome</th><th>Tipo(s) gerado(s)</th></tr></thead><tbody>'+pageRows.map(function(x){return '<tr><td class="mono">'+x.cpf+'</td><td>'+(x.nome||'<span class="dsh-none">—</span>')+'</td><td>'+x.tipos+'</td></tr>';}).join('')+'</tbody></table>'
+    ? '<table class="dsh-table"><thead><tr><th>CPF</th><th>Nome</th><th>Tipo(s) gerado(s)</th></tr></thead><tbody>'+pageRows.map(function(x){return '<tr><td class="mono">'+(envSemCpf.has(x.cpf)?'—':x.cpf)+'</td><td>'+(x.nome||'<span class="dsh-none">—</span>')+'</td><td>'+x.tipos+'</td></tr>';}).join('')+'</tbody></table>'
     : pageRows.map(function(o){return envPersonHtml(o);}).join('');
   el.innerHTML = bulk + body + envPager(start,end,total,pages);
   obsGrowIn(el);
@@ -2950,14 +2975,14 @@ function envExport(){
   var all=[]; c.folMap.forEach(function(o){ all.push(o); });
   all.sort(function(a,b){ return (a.gerado?1:0)-(b.gerado?1:0) || a.cpf.localeCompare(b.cpf); });
   var aoa=[['CPF','Nome','Matrículas','Categoria','Situação','Gerado?','Tipos','Enviado?','Pendente?','Motivo']];
-  all.forEach(function(o){ aoa.push([o.cpf,o.nome,(o.mats||[]).join(', '),o.categoria,o.situacao,o.gerado?'sim':'não',o.tipos||'',o.enviado?'sim':'',o.pend?'sim':'',o.motivo||'']); });
+  all.forEach(function(o){ aoa.push([o.semCpf?'':o.cpf,o.nome,(o.mats||[]).join(', '),o.categoria,o.situacao,o.gerado?'sim':'não',o.tipos||'',o.enviado?'sim':'',o.pend?'sim':'',o.motivo||'']); });
   var ws=XLSX.utils.aoa_to_sheet(aoa); ws['!cols']=[{wch:13},{wch:30},{wch:16},{wch:20},{wch:10},{wch:9},{wch:16},{wch:9},{wch:10},{wch:40}]; ws['!autofilter']={ref:'A1:J'+aoa.length};
   XLSX.utils.book_append_sheet(wb,ws,'Controle de envio');
   if(c.fora.length){ var fo=[['CPF','Nome','Tipos gerados']]; c.fora.forEach(function(x){fo.push([x.cpf,x.nome||'',x.tipos]);}); var wsF=XLSX.utils.aoa_to_sheet(fo); wsF['!cols']=[{wch:13},{wch:30},{wch:16}]; XLSX.utils.book_append_sheet(wb,wsF,'Gerados fora da lista'); }
   XLSX.writeFile(wb,'controle_envio_'+((comp||'esocial').replace(/[\/ ]/g,'-'))+'.xlsx');
 }
 function envClear(){
-  envFolha=[]; envGerado=new Map(); envTypes={'S-1200':0,'S-1202':0,'S-1207':0,'?':0}; envFiles=[]; envSearch=''; envTab='afazer'; envPend=new Map(); envSent=new Map(); envResolved=new Map(); envPage=1;
+  envFolha=[]; envGerado=new Map(); envSemCpf=new Set(); snapRestBannerOff('envio'); envTypes={'S-1200':0,'S-1202':0,'S-1207':0,'?':0}; envFiles=[]; envSearch=''; envTab='afazer'; envPend=new Map(); envSent=new Map(); envResolved=new Map(); envPage=1;
   envHideRestore();
   $('#envFolhaStatus').innerHTML='Folha do ERGON (.xlsx/.csv) &middot; arraste ou clique';
   $('#envJsonStatus').innerHTML='JSONs gerados &middot; S-1200 / 1202 / 1207 &middot; arraste ou clique';
@@ -3328,7 +3353,7 @@ function inssExport(){
   XLSX.writeFile(wb,'conferencia_inss_dctfweb.xlsx');
 }
 function inssClear(){
-  inssFolha=new Map(); inssEso=new Map(); inssSearchT='';
+  inssFolha=new Map(); inssEso=new Map(); snapRestBannerOff('inss'); inssSearchT='';
   $('#inssFolhaStatus').innerHTML='Folha RGPS (.csv) &middot; arraste ou clique';
   $('#inssEsoStatus').innerHTML='S-5001 (.csv) &middot; arraste ou clique';
   var s=$('#inssSearch'); if(s) s.value='';
@@ -3668,7 +3693,7 @@ function inxExport(){
 }
 
 function inxClear(){
-  inxItems=[]; inxSearchT=''; inxFilter=new Set(); inxCompTxt=''; inxFileName='';
+  inxItems=[]; snapRestBannerOff('inexistentes'); inxSearchT=''; inxFilter=new Set(); inxCompTxt=''; inxFileName='';
   $('#inxStatus').textContent='LISTA_ERGONESO_INEXIST (.csv / .xlsx) · arraste ou clique';
   $('#inxComp').textContent='—'; if($('#inxSearch')) $('#inxSearch').value='';
   $('#inxResults').classList.add('hidden'); $('#inxPlaceholder').classList.remove('hidden');
@@ -4063,7 +4088,7 @@ function snapEnvio(){
   if(!envFolha.length){ alert('Importe a folha (esperados) antes de gravar.'); return; }
   var c=envCompute(), itens=[];
   c.folMap.forEach(function(o){
-    var mat=(o.mats||[]).join(', '), base={categoria:o.categoria||'', situacao:o.situacao||'',
+    var mat=(o.mats||[]).join(', '), base={categoria:o.categoria||'', situacao:o.situacao||'', gerado:!!o.gerado, tipos:o.tipos||'',
       observacao:obsLimpa(obsGet('envio',envComp(),o.cpf))};
     if(o.resolvidoEm) base.pendencia_resolvida={motivo:obsLimpa(o.resolvidoMotivo), em:o.resolvidoEm};
     if(o.pend) itens.push({matricula:mat, tipo:'pendente', valor:Object.assign({motivo:obsLimpa(o.motivo)},base)});
@@ -4071,19 +4096,41 @@ function snapEnvio(){
     else if(o.gerado) itens.push({matricula:mat, tipo:'gerado_nao_enviado', valor:Object.assign({tipos:o.tipos||''},base)});
     else itens.push({matricula:mat, tipo:'nao_gerado', valor:base});
   });
+  // gerados fora da lista: vai só a matrícula (achada na base local) e os tipos — o CPF não sai do navegador
+  c.fora.forEach(function(x){ var l=byCpf.get(x.cpf), r=l&&l[0];
+    itens.push({matricula:r?((r.NUMFUNC||'')+'/'+(r.NUMVINC||'')):'', tipo:'fora_da_lista', valor:{tipos:x.tipos||''}}); });
   // atenção: em envCompute, "enviados" e "pend" são LISTAS de pessoas (com CPF/nome) — aqui só vai a contagem
   var n=function(x){ return Array.isArray(x)? x.length : (+x||0); };
-  snapSave('envio', envComp(), {esperados:n(c.esperados), vinculos:n(c.vinculos), gerados:n(c.gerados), enviados:n(c.enviados),
+  snapSave('envio', envComp(), {formato:2, esperados:n(c.esperados), vinculos:n(c.vinculos), gerados:n(c.gerados), enviados:n(c.enviados),
     a_enviar:n(c.restante), pendentes:n(c.pend), pendencias_resolvidas:n(c.resolvidas), gerados_fora_da_lista:n(c.fora)}, itens);
 }
 function snapConfronto(){
   if(!processed.length){ alert('Processe o arquivo de divergências antes de gravar.'); return; }
   var por={}; processed.forEach(function(p){ var b=displayBucket(p); por[b]=(por[b]||0)+1; });
   var comps={}; processed.forEach(function(p){ if(p.ano&&p.mes) comps[String(p.mes).padStart(2,'0')+'/'+p.ano]=1; });
-  var itens=processed.map(function(p){ return {matricula:p.mat||'', tipo:displayBucket(p),
-    valor:{evento:p.evento, evento_automatico:p.autoEvento, manual:!!p.manual, situacao_manual:p.status||'',
-           observacao:obsLimpa(p.obs), regime:p.regime||'', situacao:p.situacao||''}}; });
-  snapSave('confronto', Object.keys(comps).sort().join(', '), {total:processed.length, por_grupo:por,
+  // linhas cruas de cada pessoa (ERGON e eSocial), para a tela poder ser remontada depois (Restaurar).
+  // só identificação funcional + campos que divergiram — nunca CPF, NOME, ID_PESSOA nem NRINSC
+  var cru=new Map();
+  (lastDivRows||[]).forEach(function(r){
+    var mt=(r.MATRICULA && String(r.MATRICULA).includes('/')) ? r.MATRICULA : ((r.NUMFUNC||'')+'/'+(r.NUMVINC||''));
+    var k=padCpf(r.CPF)+'|'+mt+'|'+(r.ANO||'')+'|'+(r.MES||''); if(!cru.has(k)) cru.set(k,{});
+    cru.get(k)[(r.ORIGEM||'').toLowerCase().includes('eso')?'eSocial':'ERGON']=r; });
+  var PROIB=/cpf|nome|pessoa|nrinsc|cnpj/i;
+  var linhas=function(par){ if(!par) return null; var campos=new Set();
+    Object.keys(par).forEach(function(o){ splitFields(par[o].DIVERGENCIAS).forEach(function(f){ campos.add(f); }); });
+    var out={}; Object.keys(par).forEach(function(o){ var r=par[o], x={};
+      ['NUMFUNC','NUMVINC','NUMPENS','ANO','MES','DIVERGENCIAS'].concat(Array.from(campos)).forEach(function(k){
+        if(PROIB.test(k)) return; var v=r[k]; if(v!=null && String(v)!=='') x[k]=String(v); });
+      if(r.MATRICULA && String(r.MATRICULA).includes('/')) x.MATRICULA=String(r.MATRICULA);
+      out[o]=x; }); return out; };
+  var honor=function(p){ if(!honorLoaded) return null; var h=honorMap.get(p.mat+'|'+p.ano+'|'+p.mes);
+    if(!h){ for(const [k,v] of honorMap){ if(k.startsWith(p.mat+'|')){ h=v; break; } } }
+    return h? {h774:snapR2(h.h774), h8999:snapR2(h.h8999), h4015:snapR2(h.h4015)} : null; };
+  var itens=processed.map(function(p){ var v={evento:p.evento, evento_automatico:p.autoEvento, manual:!!p.manual, situacao_manual:p.status||'',
+           observacao:obsLimpa(p.obs), regime:p.regime||'', situacao:p.situacao||'', ano:String(p.ano||''), mes:String(p.mes||''), linhas:linhas(cru.get(p.key))};
+    var h=honor(p); if(h) v.honor=h;
+    return {matricula:p.mat||'', tipo:displayBucket(p), valor:v}; });
+  snapSave('confronto', Object.keys(comps).sort().join(', '), {formato:2, total:processed.length, por_grupo:por,
     honorarios:(typeof honorLoaded!=='undefined'&&honorLoaded)?'carregada':'nao carregada'}, itens);
 }
 function snapInexist(){
@@ -4092,8 +4139,9 @@ function snapInexist(){
   var itens=inxItems.map(function(i){ return {matricula:i.mat||'', tipo:i.bucket,
     valor:{situacao:(i.cls&&i.cls.situacao)||'', tipo_vinculo:i.tipovinc||'', crmen:(i.crs||[]).join(', '),
            linhas:i.n||1, fora_da_base:!i.rec, observacao:obsLimpa(obsGet('inexistentes',inxCompTxt,i.cpf+'|'+i.mat)),
-           evento_automatico:i.auto, evento_manual:i.manualEv||'', situacao_manual:i.st||''}}; });
-  snapSave('inexistentes', inxCompTxt, {total:c.total, s1200:c['S-1200']||0, s1202:c['S-1202']||0, s1207:c['S-1207']||0,
+           evento_automatico:i.auto, evento_manual:i.manualEv||'', situacao_manual:i.st||'',
+           ano:String(i.ano||''), mes:String(i.mes||''), numpens:String(i.pens||'')}}; });
+  snapSave('inexistentes', inxCompTxt, {formato:2, total:c.total, s1200:c['S-1200']||0, s1202:c['S-1202']||0, s1207:c['S-1207']||0,
     revisar:c['REVISAR']||0, beneficios:c['BENEFICIO']||0, justificadas:c['JUSTIFICADA']||0, fora_da_base:c.semBase||0}, itens);
 }
 function snapInss(){
@@ -4110,7 +4158,15 @@ function snapInss(){
   // quem está na folha sem problema, mas com observação escrita, também vai (a observação não se perde)
   inssFolha.forEach(function(f){ var t=o(f.cpf); if(t && !ja.has(f.cpf) && f.mat) itens.push({matricula:f.mat, tipo:'observacao', valor:{observacao:t}}); });
   // "falta na folha" só existe do lado do eSocial, identificado por CPF: entra apenas na contagem
-  snapSave('inss', comp, {dctf_esocial:c.dctf, dctf_folha:c.dctfFolha, falta_no_esocial:c.faltaEso.length,
+  // valores de cada pessoa (tipo "dados"), para a tela poder ser remontada depois (Restaurar): chave = matrícula da folha
+  // ou, se a pessoa só está no eSocial, a matrícula achada na base local; sem matrícula vai só com os valores (sem identificação)
+  var dados=new Map(), matDe=function(cpf){ var l=byCpf.get(cpf), r=l&&l[0]; return r? ((r.NUMFUNC||'')+'/'+(r.NUMVINC||'')) : ''; };
+  inssFolha.forEach(function(f){ dados.set(f.cpf,{mat:(f.mat&&f.mat!=='/')?f.mat:matDe(f.cpf), folha:{cat:f.cat||'', base:snapR2(f.base), inss:snapR2(f.inss)}}); });
+  inssEso.forEach(function(e){ var d=dados.get(e.cpf); if(!d){ d={mat:matDe(e.cpf)}; dados.set(e.cpf,d); }
+    d.eso={cat:e.cat||'', base:snapR2(e.base), inss:snapR2(e.inss), segEmp:snapR2(e.segEmp), segCI:snapR2(e.segCI), baseEmp:snapR2(e.baseEmp), baseCI:snapR2(e.baseCI)}; });
+  dados.forEach(function(d,cpf){ var v={}; if(d.folha) v.folha=d.folha; if(d.eso) v.eso=d.eso; var t=o(cpf); if(t) v.observacao=t;
+    itens.push({matricula:d.mat||'', tipo:'dados', valor:v}); });
+  snapSave('inss', comp, {formato:2, dctf_esocial:c.dctf, dctf_folha:c.dctfFolha, falta_no_esocial:c.faltaEso.length,
     falta_na_folha:c.faltaFolha.length, div_base:c.divBase.length, div_inss:c.divInss.length, parametros:inssParams}, itens);
 }
 document.addEventListener('click',function(e){
@@ -4119,6 +4175,209 @@ document.addEventListener('click',function(e){
   var f={inss:snapInss, confronto:snapConfronto, envio:snapEnvio, inexistentes:snapInexist}[b.getAttribute('data-snap')];
   if(f) f();
 });
+
+/* ---------- RESTAURAR uma competência gravada: a ferramenta remonta a tela a partir da nuvem ----------
+   a nuvem só tem matrícula + valores; nome e CPF voltam da BASE DE SERVIDORES deste navegador (nada disso sobe).
+   gravações feitas antes do "formato 2" (resumo.formato) não têm tudo: Confronto volta sem os valores e o INSS não remonta. */
+var SNAP_TOOL_EL={envio:'tool-envio', inexistentes:'tool-inexist', confronto:'tool-comparador', inss:'tool-3'};
+var snapRestLista=[];
+function snapR2(v){ return Math.round((+v||0)*100)/100; }   // 2 casas: evita "0.1+0.2" com 16 dígitos no JSON
+function snapRestModal(){
+  var m=document.getElementById('restModal');
+  if(!m){ m=document.createElement('div'); m.id='restModal'; m.className='rest-modal hidden';
+    m.setAttribute('role','dialog'); m.setAttribute('aria-modal','true'); m.setAttribute('aria-labelledby','restH');
+    m.innerHTML='<div class="rest-box"><button type="button" class="rest-x" data-rest-fechar aria-label="Fechar">&times;</button>'+
+      '<div class="rest-h" id="restH"></div><div class="rest-sub" id="restSub"></div><div id="restCorpo"></div></div>'; }
+  document.body.appendChild(m);   // por último no body: fica acima da casca (z-index máximo, a ordem desempata)
+  return m; }
+function snapRestFechar(){ var m=document.getElementById('restModal'); if(m) m.classList.add('hidden'); }
+function snapRestResumo(f,R){ R=R||{};
+  if(f==='envio') return lmtN(R.enviados)+' de '+lmtN(R.esperados)+' enviados · '+lmtN(R.pendentes)+' pendência(s)';
+  if(f==='confronto') return lmtN(R.total)+' divergência(s) · '+lmtN((R.por_grupo||{}).SANADAS||0)+' sanada(s)';
+  if(f==='inexistentes') return lmtN(R.total)+' vínculo(s) · '+lmtN(R.beneficios)+' benefício(s) · '+lmtN(R.justificadas)+' justificado(s)';
+  if(f==='inss'){ var d=R.dctf_esocial||{}; return 'Segurados R$ '+fmtBR(d.segEmp||0)+' · '+lmtN((R.div_base||0)+(R.div_inss||0))+' divergência(s)'; }
+  return ''; }
+function snapRestTemDados(f){
+  if(f==='envio') return envFolha.length>0; if(f==='inexistentes') return inxItems.length>0;
+  if(f==='confronto') return processed.length>0 || honorLoaded; if(f==='inss') return inssFolha.size>0 || inssEso.size>0; return false; }
+async function snapRestAbrir(f){
+  if(!(window.Cloud && Cloud.on && Cloud.on())){ alert('Para restaurar da nuvem, entre com e-mail e senha (o acesso pela senha mestra não tem nuvem).'); return; }
+  if(!baseRecs.length){ alert('Carregue primeiro a base de servidores (na tela inicial).\n\nA nuvem guarda só matrículas; os nomes e CPFs voltam da base deste navegador.'); return; }
+  var m=snapRestModal(); m.classList.remove('hidden');
+  document.getElementById('restH').textContent='Restaurar competência · '+SNAP_NOMES[f];
+  document.getElementById('restSub').textContent='Escolha uma competência gravada. A tela é remontada a partir da nuvem, sem importar os arquivos; nomes e CPFs vêm da base de servidores deste navegador. Depois dá para continuar e gravar de novo.';
+  var C=document.getElementById('restCorpo'); C.innerHTML='<div class="rest-msg">Buscando as competências gravadas…</div>';
+  try{
+    var r=await Cloud.from('competencia_snapshot').select('competencia,resumo,itens,atualizado_em,atualizado_email').eq('ferramenta',f);
+    if(r && r.error) throw r.error;
+    snapRestLista=((r&&r.data)||[]).sort(function(a,b){ return (lmtCompOrd(b.competencia)-lmtCompOrd(a.competencia)) || String(b.atualizado_em).localeCompare(String(a.atualizado_em)); });
+    if(!snapRestLista.length){ C.innerHTML='<div class="rest-msg">Nenhuma competência gravada nesta ferramenta ainda. Use <b>&#9729; Gravar competência</b> primeiro.</div>'; return; }
+    C.innerHTML='<div class="rest-list">'+snapRestLista.map(function(x,i){ var R=x.resumo||{}, velho=R.formato!==2 && (f==='confronto'||f==='inss'||f==='envio');
+      return '<div class="rest-row"><div class="rest-comp">'+obsEsc(x.competencia)+'</div><div class="rest-info">'+obsEsc(snapRestResumo(f,R))+
+        '<small>gravada em '+(x.atualizado_em?new Date(x.atualizado_em).toLocaleString('pt-BR'):'?')+(x.atualizado_email?' por '+obsEsc(x.atualizado_email):'')+' · '+lmtN(x.itens||0)+' item(ns)</small>'+
+        (velho?'<span class="rest-old">'+(f==='inss'?'gravação antiga: não dá para remontar':'gravação antiga: reabre em parte')+'</span>':'')+'</div>'+
+        '<button type="button" class="rest-go" data-rest-f="'+f+'" data-rest-i="'+i+'">Restaurar</button></div>'; }).join('')+'</div>';
+    var b=C.querySelector('.rest-go'); if(b) b.focus();
+  }catch(e){ var msg=String((e&&e.message)||e); if(/relation .* does not exist|42P01/i.test(msg)) msg='as tabelas de competências ainda não existem no Supabase.';
+    C.innerHTML='<div class="rest-msg">Não consegui buscar as gravações: '+obsEsc(msg)+'</div>'; }
+}
+// itens em páginas de 1000 (limite padrão do Supabase por consulta)
+async function snapRestItens(f,comp){
+  var out=[], de=0, lote=1000;
+  for(;;){ var r=await Cloud.from('competencia_item').select('ordem,matricula,tipo,valor').eq('ferramenta',f).eq('competencia',comp)
+      .order('ordem',{ascending:true}).range(de,de+lote-1);
+    if(r && r.error) throw r.error; var d=(r&&r.data)||[]; out=out.concat(d); if(d.length<lote) break; de+=lote; }
+  return out; }
+async function snapRestaurar(f,i,btn){
+  var x=snapRestLista[i]; if(!x) return;
+  if(snapRestTemDados(f) && !confirm('Restaurar '+x.competencia+' substitui o que está aberto agora em "'+SNAP_NOMES[f]+'"'+(f==='confronto'?' (divergências e honorários)':'')+
+      '\ne as marcações e observações guardadas neste navegador para essa competência.\n\nContinuar?')) return;
+  btn.disabled=true; btn.textContent='Restaurando…';
+  try{
+    var itens=await snapRestItens(f,x.competencia);
+    var info={envio:snapRestEnvio, inexistentes:snapRestInexist, confronto:snapRestConfronto, inss:snapRestInss}[f](x,itens);
+    if(!info) return;   // recusado (ex.: gravação antiga do INSS) — o motivo já foi avisado
+    snapRestFechar(); snapRestBanner(f,x,info);
+    if(window.__appScrollTop) window.__appScrollTop(true);
+  }catch(e){ alert('Não consegui restaurar: '+String((e&&e.message)||e)); }
+  finally{ btn.disabled=false; btn.textContent='Restaurar'; }
+}
+function snapRestBanner(f,x,info){
+  var tool=document.getElementById(SNAP_TOOL_EL[f]); if(!tool) return;
+  var el=tool.querySelector('.snap-rest');
+  if(!el){ el=document.createElement('div'); el.className='snap-rest'; el.setAttribute('role','status');
+    var h=tool.querySelector('header.app'); if(h) h.insertAdjacentElement('afterend',el); else tool.insertBefore(el,tool.firstChild); }
+  el.innerHTML='<span class="ic" aria-hidden="true">&#8634;</span><div><b>Competência '+obsEsc(x.competencia)+' restaurada da nuvem</b> — gravada em '+
+    (x.atualizado_em?new Date(x.atualizado_em).toLocaleString('pt-BR'):'?')+(x.atualizado_email?' por '+obsEsc(x.atualizado_email):'')+
+    '. Nomes e CPFs vieram da base de servidores deste navegador.'+(info.aviso?'<br>'+info.aviso:'')+'</div>'+
+    '<button type="button" data-rest-banner-x aria-label="Fechar aviso">&times;</button>';
+}
+function snapRestBannerOff(f){ var t=document.getElementById((SNAP_TOOL_EL||{})[f]), el=t&&t.querySelector('.snap-rest'); if(el) el.remove(); }
+function snapRestAvisoBase(n,oq){ return n? '<b>'+lmtN(n)+'</b> '+oq+' não '+(n===1?'está':'estão')+' na base de servidores deste navegador: aparece'+(n===1?'':'m')+' sem nome e sem CPF.' : ''; }
+// observações da tela/competência restaurada substituem as guardadas neste navegador
+function obsTrocaComp(tool,comp,pares){ var a=obsAll(), c=comp||'-'; a[tool]=a[tool]||{}; a[tool][c]={};
+  pares.forEach(function(p){ if(String(p[1]||'').trim()) a[tool][c][p[0]]=String(p[1]); });
+  try{ localStorage.setItem(OBS_KEY,JSON.stringify(a)); }catch(e){} }
+function snapRestRec(mats){ for(var i=0;i<mats.length;i++){ var r=byMat.get(mats[i]); if(r) return r; } return null; }
+
+function snapRestEnvio(x,itens){
+  var comp=x.competencia, R=x.resumo||{}, folha=[], ger=new Map(), pend=new Map(), sent=new Map(), res=new Map(), obs=[], sem=new Set(), seq=0, semBase=0;
+  // quem não está na base ganha uma chave "000000nnnnn" só deste navegador (a tela mostra "—" no lugar do CPF)
+  var novo=function(){ seq++; var k='000000'+String(seq).padStart(5,'0'); sem.add(k); return k; };
+  var tipos=function(v){ var t=String(v.tipos||'').split(/\s*,\s*/).filter(Boolean); return new Set(t.length?t:['?']); };
+  itens.forEach(function(it){
+    var v=it.valor||{}, mats=String(it.matricula||'').split(/\s*,\s*/).filter(function(m){ return m && m!=='/'; }), rec=snapRestRec(mats);
+    if(it.tipo==='fora_da_lista'){ ger.set(rec?padCpf(rec.CPF):novo(), tipos(v)); return; }
+    var cpf=rec?padCpf(rec.CPF):''; if(!cpf){ cpf=novo(); semBase++; }
+    (mats.length?mats:['/']).forEach(function(m){ var p=m.split('/');
+      folha.push({numfunc:p[0]||'', numvinc:p[1]||'', cpf:cpf, nome:rec?(rec.NOME||''):'(matrícula '+m+' fora da base)',
+        categoria:v.categoria||'(sem categoria)', situacao:v.situacao||'(sem)', comp:comp}); });
+    var gerado=(v.gerado!=null)? !!v.gerado : (it.tipo==='enviado'||it.tipo==='gerado_nao_enviado');
+    if(gerado) ger.set(cpf,tipos(v));
+    if(it.tipo==='enviado') sent.set(cpf,1);
+    if(it.tipo==='pendente') pend.set(cpf,v.motivo||'');
+    if(v.pendencia_resolvida) res.set(cpf,{motivo:v.pendencia_resolvida.motivo||'', em:v.pendencia_resolvida.em||''});
+    if(v.observacao) obs.push([cpf,v.observacao]);
+  });
+  if(!folha.length){ alert('Essa gravação não tem a lista de esperados, então não há o que remontar.'); return null; }
+  envClear();
+  envFolha=folha; envGerado=ger; envSemCpf=sem; envFiles=['(nuvem)'];
+  envTypes={'S-1200':0,'S-1202':0,'S-1207':0,'?':0}; ger.forEach(function(s){ s.forEach(function(t){ envTypes[t]=(envTypes[t]||0)+1; }); });
+  envPend=pend; envSent=sent; envResolved=res; envPendSave(); envSentSave(); envResolvedSave();
+  obsTrocaComp('envio',comp,obs);
+  var nEsp=new Set(folha.map(function(r){ return r.cpf; })).size;
+  $('#envFolhaStatus').innerHTML='Restaurado da nuvem: <b>'+nEsp.toLocaleString('pt-BR')+'</b> esperado(s) &middot; '+comp;
+  $('#envJsonStatus').innerHTML='Gerados (restaurado da nuvem): <b>'+ger.size.toLocaleString('pt-BR')+'</b>';
+  envRender();
+  var av=[]; if(semBase) av.push(snapRestAvisoBase(semBase,'esperado(s)'));
+  if(R.formato!==2) av.push('Gravação antiga: quem estava pendente aparece como “sem JSON”, e os gerados fora da lista não voltam (eram '+lmtN(R.gerados_fora_da_lista||0)+').');
+  return {aviso:av.join('<br>')};
+}
+function snapRestInexist(x,itens){
+  var comp=x.competencia, cm=/^(\d{2})\/(\d{4})/.exec(comp)||[], rows=[], marks={}, obs=[], semBase=0, pulados=0;
+  itens.forEach(function(it){
+    var v=it.valor||{}, mat=String(it.matricula||''); if(!mat || mat==='/'){ pulados++; return; }
+    var rec=byMat.get(mat), cpf=rec?padCpf(rec.CPF):'', p=mat.split('/'); if(!rec) semBase++;
+    var ano=String(v.ano||cm[2]||''), mes=String(v.mes||(cm[1]?String(+cm[1]):''));
+    var crs=String(v.crmen||'').split(/\s*,\s*/).filter(Boolean), n=Math.max(1,+v.linhas||1);
+    for(var i=0;i<n;i++) rows.push({CPF:cpf, NUMFUNC:p[0]||'', NUMVINC:p[1]||'', MATRICULA:'', NUMPENS:String(v.numpens||''), ANO:ano, MES:mes, CRMEN:crs[Math.min(i,crs.length-1)]||''});
+    var mk={}; if(v.evento_manual) mk.ev=v.evento_manual; if(v.situacao_manual) mk.st=v.situacao_manual;
+    if(mk.ev||mk.st) marks[cpf+'|'+mat]=mk;
+    if(v.observacao) obs.push([cpf+'|'+mat, v.observacao]);
+  });
+  if(!rows.length){ alert('Essa gravação não tem vínculos com matrícula para remontar.'); return null; }
+  // mesma competência que o inxCompute vai calcular: é a chave das movimentações e observações
+  var chave=Array.from(new Set(rows.filter(function(r){ return r.ANO&&r.MES; }).map(function(r){ return String(r.MES).padStart(2,'0')+'/'+r.ANO; }))).sort().join(', ');
+  var all=inxMarksAll(); all[chave||'-']=marks; try{ localStorage.setItem(INX_MARK_KEY,JSON.stringify(all)); }catch(e){}
+  obsTrocaComp('inexistentes',chave,obs);
+  inxClear(); inxFileName='nuvem';
+  inxCompute(rows,{cpf:'CPF',fun:'NUMFUNC',vin:'NUMVINC',mat:'MATRICULA',pens:'NUMPENS',ano:'ANO',mes:'MES',cr:'CRMEN'});
+  $('#inxStatus').textContent='Restaurado da nuvem · '+comp+' · '+inxItems.length+' vínculo(s)';
+  var av=[]; if(semBase) av.push(snapRestAvisoBase(semBase,'vínculo(s)'));
+  if(pulados) av.push('<b>'+lmtN(pulados)+'</b> vínculo(s) sem matrícula na gravação não voltaram.');
+  return {aviso:av.join('<br>')};
+}
+function snapRestConfronto(x,itens){
+  var R=x.resumo||{}, cm=/^(\d{2})\/(\d{4})/.exec(x.competencia)||[], rows=[], ov=[], st=[], ob=[], hon=new Map(), semLinhas=0, semBase=0;
+  itens.forEach(function(it){
+    var v=it.valor||{}, mat=String(it.matricula||''), rec=(mat&&mat!=='/')?byMat.get(mat):null, cpf=rec?padCpf(rec.CPF):'', p=mat.split('/');
+    if(!rec) semBase++;
+    var ano=String(v.ano!=null&&v.ano!==''?v.ano:(cm[2]||'')), mes=String(v.mes!=null&&v.mes!==''?v.mes:(cm[1]?String(+cm[1]):''));
+    var L=v.linhas;
+    if(L && Object.keys(L).length){ Object.keys(L).forEach(function(org){ var r=Object.assign({},L[org]);
+        r.CPF=cpf; r.ORIGEM=org; r.ANO=ano; r.MES=mes;
+        if(!(r.MATRICULA && String(r.MATRICULA).includes('/')) && !r.NUMFUNC && !r.NUMVINC){ r.NUMFUNC=p[0]||''; r.NUMVINC=p[1]||''; }
+        rows.push(r); }); }
+    else { semLinhas++; rows.push({CPF:cpf, NUMFUNC:p[0]||'', NUMVINC:p[1]||'', ANO:ano, MES:mes, ORIGEM:'ERGON', DIVERGENCIAS:''}); }
+    var key=cpf+'|'+mat+'|'+ano+'|'+mes;   // a mesma chave que o processDivergences monta
+    if(v.manual && v.evento) ov.push([key,v.evento]);
+    if(v.situacao_manual) st.push([key,v.situacao_manual]);
+    if(v.observacao) ob.push([key,v.observacao]);
+    if(v.honor) hon.set(mat+'|'+ano+'|'+mes,{h774:+v.honor.h774||0, h8999:+v.honor.h8999||0, h4015:+v.honor.h4015||0, raw:{}});
+  });
+  if(!rows.length){ alert('Essa gravação não tem servidores para remontar.'); return null; }
+  if(honorLoaded){ var hc=$('#btnHonorClear'); if(hc) hc.click(); }
+  clearDivergences();
+  manualOverrides=new Map(ov); manualStatus=new Map(st); manualObs=new Map(ob);
+  ob.forEach(function(o){ obsSet('confronto','-',o[0],o[1]); });
+  if(hon.size){ honorMap=hon; honorLoaded=true; lastHonorRecords=null; setHonorLoadedUI(hon.size); }
+  processDivergences(rows);
+  var av=[]; if(semBase) av.push(snapRestAvisoBase(semBase,'servidor(es)'));
+  if(semLinhas) av.push('Gravação antiga: '+(semLinhas===itens.length?'os':'<b>'+lmtN(semLinhas)+'</b>')+' servidores voltaram com grupo, marcações e observações, mas sem os valores ERGON × eSocial.');
+  if(hon.size) av.push('Honorários restaurados para <b>'+lmtN(hon.size)+'</b> matrícula(s)/competência(s).');
+  return {aviso:av.join('<br>')};
+}
+function snapRestInss(x,itens){
+  var R=x.resumo||{}, comp=x.competencia;
+  if(!itens.some(function(it){ return it.tipo==='dados'; })){
+    alert('Esta gravação do INSS é do formato antigo: ela não guardou os valores de cada pessoa, então a tela não pode ser remontada.\n\nCarregue os arquivos e grave a competência de novo para poder restaurá-la depois.');
+    return null; }
+  var F=new Map(), E=new Map(), ob=[], seq=0, semBase=0;
+  itens.forEach(function(it){ if(it.tipo!=='dados') return;
+    var v=it.valor||{}, mat=String(it.matricula||''), rec=(mat&&mat!=='/')?byMat.get(mat):null, cpf, nome;
+    if(rec){ cpf=padCpf(rec.CPF); nome=rec.NOME||''; }
+    else { seq++; semBase++; cpf='sem CPF #'+seq; nome=mat?'(matrícula '+mat+' fora da base)':'(sem matrícula)'; }
+    if(v.folha) F.set(cpf,{cpf:cpf, nome:nome, mat:mat, cat:v.folha.cat||'', base:+v.folha.base||0, inss:+v.folha.inss||0});
+    if(v.eso) E.set(cpf,{cpf:cpf, cat:v.eso.cat||'', base:+v.eso.base||0, inss:+v.eso.inss||0, segEmp:+v.eso.segEmp||0, segCI:+v.eso.segCI||0, baseEmp:+v.eso.baseEmp||0, baseCI:+v.eso.baseCI||0});
+    if(v.observacao) ob.push([cpf,v.observacao]);
+  });
+  inssClear();
+  inssFolha=F; inssEso=E;
+  var ce=document.getElementById('inssComp'); if(ce) ce.value=comp; try{ localStorage.setItem('esocial_inss_comp',comp); }catch(e){}
+  if(R.parametros && typeof R.parametros==='object'){ inssParams=Object.assign({},inssParams,R.parametros); inssSaveParams(); inssFillParams(); }
+  obsTrocaComp('inss',comp,ob);
+  $('#inssFolhaStatus').innerHTML='Folha (restaurada da nuvem): <b>'+F.size.toLocaleString('pt-BR')+'</b> CPF(s).';
+  $('#inssEsoStatus').innerHTML='eSocial (restaurado da nuvem): <b>'+E.size.toLocaleString('pt-BR')+'</b> CPF(s).';
+  inssRender();
+  return {aviso: semBase? '<b>'+lmtN(semBase)+'</b> pessoa(s) não estão na base de servidores deste navegador (por exemplo, contribuintes individuais): aparecem como “sem CPF”, com os valores gravados.' : ''};
+}
+document.addEventListener('click',function(e){
+  var r=e.target.closest('[data-snap-rest]'); if(r){ e.preventDefault(); snapRestAbrir(r.getAttribute('data-snap-rest')); return; }
+  var g=e.target.closest('[data-rest-i]'); if(g){ e.preventDefault(); snapRestaurar(g.getAttribute('data-rest-f'), +g.getAttribute('data-rest-i'), g); return; }
+  if(e.target.closest('[data-rest-fechar]') || e.target.id==='restModal'){ snapRestFechar(); return; }
+  var bx=e.target.closest('[data-rest-banner-x]'); if(bx){ var el=bx.closest('.snap-rest'); if(el) el.remove(); }
+});
+document.addEventListener('keydown',function(e){ if(e.key!=='Escape') return; var m=document.getElementById('restModal'); if(m && !m.classList.contains('hidden')) snapRestFechar(); });
 
 /* ---------- observação por servidor, POR TELA E COMPETÊNCIA ----------
    salva no navegador a cada tecla (esocial_obs_v1 = {tela:{competencia:{chave:texto}}})
@@ -4759,7 +5018,7 @@ function pnrFocoSnap(ferr, comp, gatilho){
 }
 function pnrFocoSnapHtml(ferr, R, hist, comp, w){
   var num=function(v){ return typeof v==='number' && isFinite(v); }, box=function(t,c,wide){ return '<div class="pnr-box'+(wide?' wide':'')+'"><h3>'+t+'</h3>'+c+'</div>'; };
-  var tiles=Object.keys(R).filter(function(k){ return num(R[k]); }).map(function(k){ return [pnrRot(k), lmtN(R[k])]; }), anel='', bx=[];
+  var tiles=Object.keys(R).filter(function(k){ return num(R[k]) && k!=='formato'; }).map(function(k){ return [pnrRot(k), lmtN(R[k])]; }), anel='', bx=[];
   var sl=function(chaves, ref, cores){ return chaves.filter(function(k){ return num(R[k]); }).map(function(k,i){
     return hudSlider(PNR_CHIP[k]||pnrRot(k).toUpperCase().slice(0,7), ref? R[k]/ref : 0, {cor:cores[i%cores.length], dir:lmbPctTxt(R[k],ref), sub:'<b>'+lmtN(R[k])+'</b> '+pnrEsc(/^S-/.test(pnrRot(k))? pnrRot(k) : pnrRot(k).toLowerCase())}); }).join(''); };
   var cores=['#22E1FF','#2BFFA8','#FFB547','#9B5CFF','#FF3DBE','#3AA0FF','#C84DFF','#FFE45C'];
