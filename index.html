@@ -89,6 +89,11 @@
   .rest-go{background:var(--action);color:#fff;border:0;border-radius:8px;padding:8px 14px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap}
   .rest-go:disabled{opacity:.6;cursor:default}
   .rest-msg{font-size:13px;color:var(--muted);padding:14px 2px;line-height:1.5}
+  .rest-escolha{display:flex;flex-direction:column;gap:8px}
+  .rest-escolha button{display:block;width:100%;text-align:left;padding:11px 14px;border-radius:10px;font-family:inherit;font-size:13.5px;font-weight:700;cursor:pointer}
+  .rest-escolha button small{display:block;font-weight:400;font-size:12px;margin-top:3px;opacity:.88;line-height:1.4}
+  .rest-alt{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+  .rest-alt:hover{border-color:var(--action)}
   .snap-rest{display:flex;gap:10px;align-items:flex-start;margin:0 0 16px;padding:10px 14px;border:1px solid var(--action);border-left-width:4px;border-radius:10px;
     background:var(--action-soft);color:var(--ink);font-size:12.5px;line-height:1.55;position:relative;z-index:1}
   .snap-rest .ic{font-size:16px;line-height:1.2;color:var(--action)}
@@ -1794,8 +1799,11 @@ let byMat = new Map(), byCpf = new Map();
 let baseCols=null; try{ baseCols=JSON.parse(localStorage.getItem('esocial_base_cols')||'null'); }catch(e){}
 const BASE_STORAGE_KEY='esocial_base_v1';
 function saveBaseToStorage(){
-  try{ if(window.indexedDB) baseIdbSet('baseRecs', baseRecs); }catch(e){}
-  try{ localStorage.setItem(BASE_STORAGE_KEY, JSON.stringify(baseRecs)); }catch(e){} // legado; falha calada se a base for grande
+  // a base mora no IndexedDB. A cópia antiga no localStorage (~2 MB) disputava espaço com as marcações das ferramentas
+  // (pendências, observações, sessão do Confronto): só é usada se o IndexedDB não estiver disponível.
+  var legado=function(){ try{ localStorage.setItem(BASE_STORAGE_KEY, JSON.stringify(baseRecs)); }catch(e){} };
+  if(window.indexedDB){ try{ baseIdbSet('baseRecs', baseRecs).then(function(){ try{ localStorage.removeItem(BASE_STORAGE_KEY); }catch(e){} }, legado); return; }catch(e){} }
+  legado();
 }
 function loadBaseFromStorage(){
   try{ const s=localStorage.getItem(BASE_STORAGE_KEY); if(s){ const a=JSON.parse(s); if(Array.isArray(a)&&a.length){ baseRecs=a; return true; } } }catch(e){}
@@ -1856,7 +1864,10 @@ function updateMenuBaseUI(){
 }
 function loadBaseAsync(){
   if(!window.indexedDB) return;
-  baseIdbGet('baseRecs').then(function(a){ if(Array.isArray(a)&&a.length){ baseRecs=a; indexBase(); updateBaseUI(true); updateMenuBaseUI(); } }).catch(function(){});
+  baseIdbGet('baseRecs').then(function(a){
+    if(Array.isArray(a)&&a.length){ baseRecs=a; indexBase(); updateBaseUI(true); updateMenuBaseUI(); try{ localStorage.removeItem(BASE_STORAGE_KEY); }catch(e){} }   // libera a cópia antiga
+    else if(baseRecs.length){ saveBaseToStorage(); }   // base só no localStorage (versão antiga): passa para o IndexedDB
+  }).catch(function(){});
 }
 function ingestBase(rows){
   if(!rows||!rows.length || !('CPF' in rows[0])){ alert('Base inválida: não encontrei a coluna CPF.'); return false; }
@@ -1998,7 +2009,7 @@ function processDivergences(rows){
   }
   competencia = [...comps].sort().join(', ');
 
-  const people=[];
+  const people=[], marcas=cmpMarksAll();
   for(const g of groups.values()){
     const erg = g.rows['ERGON'], eso = g.rows['eSocial'];
     const any = erg||eso;
@@ -2028,6 +2039,9 @@ function processDivergences(rows){
     diffs.sort((a,b)=> Math.abs(b.delta||0) - Math.abs(a.delta||0));
 
     const pkey = g.cpf+'|'+g.mat+'|'+g.ano+'|'+g.mes;
+    // marcações guardadas deste servidor/competência voltam mesmo sem "Retomar sessão"
+    const mk = marcas[pkey];
+    if(mk){ if(mk.ev && !manualOverrides.has(pkey)) manualOverrides.set(pkey, mk.ev); if(mk.st && !manualStatus.has(pkey)) manualStatus.set(pkey, mk.st); }
     const ovr = manualOverrides.get(pkey);
     people.push({
       cpf:g.cpf, mat:g.mat, ano:g.ano, mes:g.mes, key:pkey,
@@ -2130,11 +2144,22 @@ function applyHonor(){
   render();
   saveSession();
 }
+/* reclassificação manual e situação ficam guardadas por servidor+competência (chave cpf|matrícula|ano|mês) neste navegador,
+   FORA da sessão: importar o mesmo arquivo de novo traz as marcações de volta. Antes elas só existiam dentro da sessão, e
+   importar o arquivo sem clicar em "Retomar sessão" as apagava (a sessão nova sobrescrevia a antiga). */
+const CMP_MARK_KEY='esocial_cmp_marks_v1';
+function cmpMarksAll(){ try{ return JSON.parse(localStorage.getItem(CMP_MARK_KEY))||{}; }catch(e){ return {}; } }
+function cmpMarksGrava(a){ try{ localStorage.setItem(CMP_MARK_KEY,JSON.stringify(a)); }catch(e){ lsFalhou(e); } }
+function cmpMarkSet(key,patch,a){ var proprio=!a; a=a||cmpMarksAll();
+  var m=Object.assign({},a[key]||{},patch); if(!m.ev) delete m.ev; if(!m.st) delete m.st;
+  if(m.ev||m.st) a[key]=m; else delete a[key];
+  if(proprio) cmpMarksGrava(a); return a; }
 function setManualEvento(key, ev){
   const p = processed.find(x=>x.key===key);
   if(!p) return;
   if(ev==='__auto'){ manualOverrides.delete(key); p.evento=p.autoEvento; p.manual=false; }
   else { manualOverrides.set(key, ev); p.evento=ev; p.manual=true; }
+  cmpMarkSet(key,{ev: ev==='__auto' ? '' : ev});
   render();
   saveSession();
 }
@@ -2142,6 +2167,7 @@ function setManualStatus(key, val){
   const p = processed.find(x=>x.key===key);
   if(val){ manualStatus.set(key,val); } else { manualStatus.delete(key); }
   if(p) p.status=val||'';
+  cmpMarkSet(key,{st: val||''});
   render(); saveSession();
 }
 function setManualObs(key, val){
@@ -2530,7 +2556,7 @@ function saveSession(){
     const n=processed.length, nov=manualOverrides.size;
     $('#savedNote').innerHTML=`💾 sessão salva neste navegador — ${n} servidor(es)${nov?`, ${nov} reclassificação(ões) manual(is)`:''} · ${new Date().toLocaleTimeString('pt-BR')}`;
     $('#savedNote').classList.remove('hidden');
-  }catch(e){ /* localStorage cheio/indisponível: ignora */ }
+  }catch(e){ lsFalhou(e); }
 }
 function restoreSession(){
   let s; try{ s=JSON.parse(localStorage.getItem(SESSION_KEY)); }catch(e){ return; }
@@ -2804,7 +2830,7 @@ function envStoreLoad(){
   try{ var s=JSON.parse(localStorage.getItem(ENV_SENT_KEY))||{}, a=s[envComp()]||[]; envSent=new Map(a.map(function(k){return [k,1];})); }catch(e){ envSent=new Map(); }
   try{ var r=JSON.parse(localStorage.getItem(ENV_RES_KEY))||{}, ro=r[envComp()]||{}; envResolved=new Map(Object.keys(ro).map(function(k){return [k,ro[k]];})); }catch(e){ envResolved=new Map(); }
 }
-function envResolvedSave(){ if(!envComp()) return; try{ var all=JSON.parse(localStorage.getItem(ENV_RES_KEY))||{}; var o={}; envResolved.forEach(function(v,k){o[k]=v;}); all[envComp()]=o; localStorage.setItem(ENV_RES_KEY, JSON.stringify(all)); }catch(e){} }
+function envResolvedSave(){ if(!envComp()) return; try{ var all=JSON.parse(localStorage.getItem(ENV_RES_KEY))||{}; var o={}; envResolved.forEach(function(v,k){o[k]=v;}); all[envComp()]=o; localStorage.setItem(ENV_RES_KEY, JSON.stringify(all)); }catch(e){ lsFalhou(e); } }
 // pendência -> resolvida: sai de "Pendentes", mas o motivo e a data ficam guardados
 function envMarkResolved(cpf){ cpf=padCpf(cpf); if(!cpf||!envPend.has(cpf)) return;
   envResolved.set(cpf,{motivo:envPend.get(cpf)||'', em:new Date().toISOString()}); envPend.delete(cpf);
@@ -2814,8 +2840,8 @@ function envUnmarkResolved(cpf){ cpf=padCpf(cpf); var r=envResolved.get(cpf); if
   envPend.set(cpf,r.motivo||''); envResolved.delete(cpf); if(envSent.has(cpf)){ envSent.delete(cpf); envSentSave(); }
   envResolvedSave(); envPendSave(); envRender(); }
 // sem competência não se guarda nada — era o "balde vazio" que misturava meses diferentes
-function envPendSave(){ if(!envComp()) return; try{ var all=JSON.parse(localStorage.getItem(ENV_PEND_KEY))||{}; var o={}; envPend.forEach(function(v,k){o[k]=v;}); all[envComp()]=o; localStorage.setItem(ENV_PEND_KEY, JSON.stringify(all)); }catch(e){} }
-function envSentSave(){ if(!envComp()) return; try{ var all=JSON.parse(localStorage.getItem(ENV_SENT_KEY))||{}; all[envComp()]=Array.from(envSent.keys()); localStorage.setItem(ENV_SENT_KEY, JSON.stringify(all)); }catch(e){} }
+function envPendSave(){ if(!envComp()) return; try{ var all=JSON.parse(localStorage.getItem(ENV_PEND_KEY))||{}; var o={}; envPend.forEach(function(v,k){o[k]=v;}); all[envComp()]=o; localStorage.setItem(ENV_PEND_KEY, JSON.stringify(all)); }catch(e){ lsFalhou(e); } }
+function envSentSave(){ if(!envComp()) return; try{ var all=JSON.parse(localStorage.getItem(ENV_SENT_KEY))||{}; all[envComp()]=Array.from(envSent.keys()); localStorage.setItem(ENV_SENT_KEY, JSON.stringify(all)); }catch(e){ lsFalhou(e); } }
 
 function envReadFolha(file){
   var fr=new FileReader();
@@ -3414,7 +3440,8 @@ var Cloud=(function(){
       : Promise.resolve({error:{message:'Nuvem indisponível neste navegador.'}}); },
     resetPassword:function(e,redir){ return client? client.auth.resetPasswordForEmail(e,{redirectTo:redir})
       : Promise.resolve({error:{message:'Nuvem indisponível neste navegador.'}}); },
-    signOut:function(){return client?client.auth.signOut():Promise.resolve();}, from:function(t){return client.from(t);} };
+    signOut:function(){return client?client.auth.signOut():Promise.resolve();}, from:function(t){return client.from(t);},
+    sessao:function(){ return client? client.auth.getSession().then(function(r){ return (r&&r.data&&r.data.session)||null; }) : Promise.resolve(null); } };
 })();
 
 /* --- histórico do dashboard <-> nuvem --- */
@@ -3541,7 +3568,7 @@ function inxMarkSet(key,patch){
   var a=inxMarksAll(), c=inxCompTxt||'-'; a[c]=a[c]||{};
   var m=Object.assign({}, a[c][key]||{}, patch); if(!m.ev) delete m.ev; if(!m.st) delete m.st;
   if(m.ev||m.st) a[c][key]=m; else delete a[c][key];
-  try{ localStorage.setItem(INX_MARK_KEY,JSON.stringify(a)); }catch(e){}
+  try{ localStorage.setItem(INX_MARK_KEY,JSON.stringify(a)); }catch(e){ lsFalhou(e); }
 }
 // grupo exibido: Justificada tem prioridade; depois o evento escolhido à mão; senão o automático
 function inxApplyMark(it){ var m=inxMarkGet(it.cpf+'|'+it.mat); it.manualEv=m.ev||''; it.st=m.st||'';
@@ -4042,50 +4069,180 @@ function snapPedirComp(detectada){
   if(!snapCompOk(v)){ alert('Competência inválida. Use o formato MM/AAAA, por exemplo 01/2025.'); return null; }
   return v;
 }
-async function snapSave(ferramenta, competencia, resumo, itens){
+/* ---------- GRAVAR competência na nuvem ----------
+   uma gravação por ferramenta+competência, compartilhada por todos os usuários. Proteções:
+   - uma gravação por vez (botões travados, "Gravando…") — dois cliques não se atropelam;
+   - sessão conferida/renovada antes de começar;
+   - números arredondados a 2 casas (soma de ponto flutuante gerava "dígitos fantasmas" que a trava de CPF confundia);
+   - se já existe gravação com marcações que a tela não tem: JUNTAR (traz para a tela e grava tudo) ou substituir;
+   - no fim confere quantos itens a nuvem registrou; se algo falhar, devolve a gravação anterior. */
+var snapOcupado=false;
+async function snapSave(ferramenta, competencia, resumo, itens, coletar){
+  if(snapOcupado){ alert('Já há uma gravação em andamento. Aguarde ela terminar.'); return; }
+  snapOcupado=true; snapBotoes(ferramenta,true);
+  try{ await snapSaveCore(ferramenta, competencia, resumo, itens, coletar); }
+  finally{ snapOcupado=false; snapBotoes(ferramenta,false); }
+}
+function snapBotoes(f,on){
+  document.querySelectorAll('.snap-btn,.rest-btn').forEach(function(b){ b.disabled=on; });
+  var b=document.querySelector('.snap-btn[data-snap="'+f+'"]'); if(b) b.innerHTML=on?'&#9729; Gravando…':'&#9729; Gravar competência'; }
+// arredonda a 2 casas todo número com fração (recursivo)
+function snapNum(x){
+  if(typeof x==='number') return (isFinite(x) && !Number.isInteger(x)) ? Math.round(x*100)/100 : x;
+  if(Array.isArray(x)) return x.map(snapNum);
+  if(x && typeof x==='object'){ var o={}; Object.keys(x).forEach(function(k){ o[k]=snapNum(x[k]); }); return o; }
+  return x; }
+var SNAP_RE_CPF=/(^|[^\d])\d{11}([^\d]|$)/, SNAP_RE_CHAVE=/"(cpf|nome)"\s*:/i;
+// trava de privacidade: nada com cara de CPF (11 dígitos) nem campo cpf/nome sai do navegador — e diz ONDE achou
+function snapPrivOk(d){
+  if(!SNAP_RE_CPF.test(JSON.stringify(d)) && !SNAP_RE_CHAVE.test(JSON.stringify(d))) return true;
+  var onde='o resumo da tela';
+  for(var i=0;i<d.itens.length;i++){ var it=d.itens[i], s=JSON.stringify(it); if(!SNAP_RE_CPF.test(s) && !SNAP_RE_CHAVE.test(s)) continue;
+    var campo=''; Object.keys(it.valor||{}).some(function(k){ var t=JSON.stringify(it.valor[k]); if(SNAP_RE_CPF.test(t)||SNAP_RE_CHAVE.test(t)){ campo=k; return true; } return false; });
+    onde='o item '+(i+1)+(it.matricula?' (matrícula '+it.matricula+')':'')+(campo?', campo "'+campo+'"':''); break; }
+  alert('Gravação bloqueada: '+onde+' tem um número de 11 dígitos (parece um CPF) ou um campo de CPF/nome, que não podem ir para a nuvem.\n\n'+
+    'Se for uma observação, apague o CPF dela e grave de novo. Se não for, avise para ajustarmos.');
+  return false; }
+function snapErroTxt(e){ var m=String((e&&e.message)||e||'erro desconhecido');
+  if(/relation .* does not exist|42P01/i.test(m)) return 'as tabelas ainda não existem no Supabase (rode o schema-competencias.sql no SQL Editor)';
+  if(/jwt|token|expired|401|not authenticated|invalid claim/i.test(m)) return 'sua sessão na nuvem expirou (clique em Sair e entre de novo)';
+  if(/failed to fetch|network|load failed|timeout/i.test(m)) return 'sem conexão com a nuvem (verifique a internet)';
+  return m; }
+async function snapSessaoOk(){
+  try{ if(Cloud.sessao){ var s=await Cloud.sessao(); if(s) return true; } else return true; }catch(e){}
+  alert('Sua sessão na nuvem expirou. Clique em "Sair", entre de novo com e-mail e senha e tente outra vez.\n\nNada foi alterado.');
+  return false; }
+function snapCheca(r){ if(r && r.error) throw r.error; return r; }
+async function snapInsereItens(f,comp,itens){
+  for(var i=0;i<itens.length;i+=500){
+    var lote=itens.slice(i,i+500).map(function(x,j){ return {ferramenta:f, competencia:comp, ordem:i+j+1,
+      matricula:String(x.matricula||''), tipo:String(x.tipo||''), valor:x.valor||{}}; });
+    snapCheca(await Cloud.from('competencia_item').insert(lote));
+  } }
+// marcações feitas à mão de uma gravação, por servidor (chave = matrícula)
+function snapMarcasDe(f,itens){ var m=new Map(), temDados=(f==='inss') && (itens||[]).some(function(it){ return it.tipo==='dados'; });
+  (itens||[]).forEach(function(it){ var v=it.valor||{}, tem=false, k=String(it.matricula||'');
+    if(f==='envio'){ tem=(it.tipo==='pendente'||it.tipo==='enviado'||!!v.pendencia_resolvida||!!v.observacao); k=k.split(/\s*,\s*/).filter(Boolean).sort().join(','); }
+    else if(f==='confronto') tem=!!(v.manual||v.situacao_manual||v.observacao);
+    else if(f==='inexistentes') tem=!!(v.evento_manual||v.situacao_manual||v.observacao);
+    else if(f==='inss') tem=!!v.observacao && (!temDados || it.tipo==='dados');
+    if(tem && k && k!=='/' && !m.has(k)) m.set(k,it); });
+  return m; }
+function snapContaMarcas(f,itens){ return snapMarcasDe(f,itens).size; }
+// janela de escolha (Juntar / Substituir / Cancelar); devolve uma Promise com o valor do botão
+function snapEscolha(titulo, texto, botoes){
+  return new Promise(function(res){
+    var m=snapRestModal(); m.classList.remove('hidden'); m.setAttribute('data-modo','escolha');
+    document.getElementById('restH').textContent=titulo;
+    document.getElementById('restSub').innerHTML=texto;
+    document.getElementById('restCorpo').innerHTML='<div class="rest-escolha">'+botoes.map(function(b,i){
+      return '<button type="button" class="'+(i===0?'rest-go':'rest-alt')+'" data-escolha="'+b.v+'">'+b.t+(b.d?'<small>'+b.d+'</small>':'')+'</button>'; }).join('')+'</div>';
+    var fim=function(v){ m.classList.add('hidden'); m.removeAttribute('data-modo'); m.removeEventListener('click',clique); document.removeEventListener('keydown',tecla); res(v); };
+    var clique=function(e){ var b=e.target.closest('[data-escolha]'); if(b){ e.stopPropagation(); fim(b.getAttribute('data-escolha')); return; }
+      if(e.target===m || e.target.closest('[data-rest-fechar]')){ e.stopPropagation(); fim('cancelar'); } };
+    var tecla=function(e){ if(e.key==='Escape') fim('cancelar'); };
+    m.addEventListener('click',clique); document.addEventListener('keydown',tecla);
+    var p=m.querySelector('.rest-go'); if(p) p.focus();
+  }); }
+async function snapDecide(f, comp, antigo, antigos, novos){
+  var quando=antigo.atualizado_em? new Date(antigo.atualizado_em).toLocaleString('pt-BR'):'?';
+  var outro=antigo.atualizado_email && antigo.atualizado_email!==Cloud.email();
+  var quem=(antigo.atualizado_email||'outro usuário')+(outro?' (outro usuário)':'');
+  var antes=snapMarcasDe(f,antigos), agora=snapMarcasDe(f,novos), faltam=0;
+  antes.forEach(function(it,k){ if(!agora.has(k)) faltam++; });
+  if(!faltam) return confirm('Já existe uma gravação de '+comp+' em "'+SNAP_NOMES[f]+'", feita por '+quem+' em '+quando+'.\n\n'+
+    'Todas as marcações dela já estão na sua tela. Substituir pela situação atual?') ? 'substituir' : 'cancelar';
+  return snapEscolha('Já existe uma gravação de '+comp,
+    'Feita por <b>'+obsEsc(quem)+'</b> em '+obsEsc(quando)+'. Ela tem <b>'+faltam+'</b> servidor(es) com marcação (pendência, reclassificação, situação ou observação) '+
+    'que <b>estão sem marcação na sua tela</b>. A gravação é uma só para todos os usuários.',
+    [{v:'juntar', t:'Juntar e gravar (recomendado)', d:'as marcações da gravação existente entram na sua tela e tudo é gravado junto; onde você já marcou, vale a sua'},
+     {v:'substituir', t:'Substituir pela minha tela', d:'as marcações de '+faltam+' servidor(es) que não estão na sua tela se perdem para todos'},
+     {v:'cancelar', t:'Cancelar', d:'nada é gravado'}]); }
+// traz para a tela as marcações da gravação existente que a tela não tem; devolve quantos servidores receberam marcação
+function snapJuntar(f, antigos, novos){
+  var antes=snapMarcasDe(f,antigos), agora=snapMarcasDe(f,novos), n=0;
+  var faltam=[]; antes.forEach(function(it,k){ if(!agora.has(k)) faltam.push(it); });
+  if(!faltam.length) return 0;
+  if(f==='envio'){ var comp=envComp(), porMat=new Map(); envFolha.forEach(function(r){ porMat.set((r.numfunc||'')+'/'+(r.numvinc||''), r.cpf); });
+    faltam.forEach(function(it){ var v=it.valor||{}, cpf=null; String(it.matricula||'').split(/\s*,\s*/).some(function(m){ cpf=porMat.get(m)||null; return !!cpf; }); if(!cpf) return;
+      var mexeu=false;
+      if(it.tipo==='pendente' && !envSent.has(cpf) && !envPend.has(cpf)){ envPend.set(cpf,v.motivo||''); mexeu=true; }
+      if(it.tipo==='enviado' && !envPend.has(cpf) && !envSent.has(cpf)){ envSent.set(cpf,1); mexeu=true; }
+      if(v.pendencia_resolvida && !envResolved.has(cpf)){ envResolved.set(cpf,{motivo:v.pendencia_resolvida.motivo||'', em:v.pendencia_resolvida.em||''}); mexeu=true; }
+      if(v.observacao && !obsGet('envio',comp,cpf)){ obsSet('envio',comp,cpf,v.observacao); mexeu=true; }
+      if(mexeu) n++; });
+    envPendSave(); envSentSave(); envResolvedSave(); envRender(); }
+  else if(f==='inexistentes'){ var porMatI=new Map(); inxItems.forEach(function(i){ porMatI.set(i.mat,i); });
+    faltam.forEach(function(it){ var v=it.valor||{}, i=porMatI.get(it.matricula); if(!i) return; var k=i.cpf+'|'+i.mat, patch={}, mexeu=false;
+      if(!i.manualEv && v.evento_manual) patch.ev=v.evento_manual;
+      if(!i.st && v.situacao_manual) patch.st=v.situacao_manual;
+      if(patch.ev||patch.st){ inxMarkSet(k,patch); mexeu=true; }
+      if(v.observacao && !obsGet('inexistentes',inxCompTxt,k)){ obsSet('inexistentes',inxCompTxt,k,v.observacao); mexeu=true; }
+      if(mexeu) n++; });
+    inxItems.forEach(inxApplyMark); inxSort(); inxRender(); }
+  else if(f==='confronto'){ var porMatC=new Map(); processed.forEach(function(p){ (porMatC.get(p.mat)||porMatC.set(p.mat,[]).get(p.mat)).push(p); });
+    faltam.forEach(function(it){ var v=it.valor||{}, ps=(porMatC.get(it.matricula)||[]).filter(function(p){ return (!v.ano||String(p.ano)===String(v.ano)) && (!v.mes||String(p.mes)===String(v.mes)); }), mexeu=false;
+      ps.forEach(function(p){
+        if(v.manual && v.evento && !manualOverrides.has(p.key)){ manualOverrides.set(p.key,v.evento); cmpMarkSet(p.key,{ev:v.evento}); mexeu=true; }
+        if(v.situacao_manual && !manualStatus.has(p.key)){ manualStatus.set(p.key,v.situacao_manual); cmpMarkSet(p.key,{st:v.situacao_manual}); mexeu=true; }
+        if(v.observacao && !p.obs){ manualObs.set(p.key,v.observacao); obsSet('confronto','-',p.key,v.observacao); mexeu=true; } });
+      if(mexeu) n++; });
+    if(n && lastDivRows && lastDivRows.length) processDivergences(lastDivRows); }
+  else if(f==='inss'){ var comp2=inssComp(), porMatS=new Map(); inssFolha.forEach(function(x){ if(x.mat) porMatS.set(x.mat,x.cpf); });
+    faltam.forEach(function(it){ var v=it.valor||{}, cpf=porMatS.get(it.matricula); if(!cpf){ var r=byMat.get(it.matricula); if(r) cpf=padCpf(r.CPF); }
+      if(!cpf || !v.observacao || obsGet('inss',comp2,cpf)) return; obsSet('inss',comp2,cpf,v.observacao); n++; });
+    if(inssFolha.size||inssEso.size) inssRenderList(inssCompute()); }
+  return n; }
+// se a gravação falhar no meio: devolve a anterior (ou apaga a incompleta, se não havia)
+async function snapDesfaz(f, comp, antigo, antigos){
+  try{
+    if(antigo){
+      snapCheca(await Cloud.from('competencia_item').delete().eq('ferramenta',f).eq('competencia',comp));
+      await snapInsereItens(f,comp,(antigos||[]).map(function(x){ return {matricula:x.matricula, tipo:x.tipo, valor:x.valor}; }));
+      snapCheca(await Cloud.from('competencia_snapshot').upsert({ferramenta:f, competencia:comp, resumo:antigo.resumo||{}, itens:(antigos||[]).length,
+        atualizado_em:antigo.atualizado_em, atualizado_email:antigo.atualizado_email},{onConflict:'ferramenta,competencia'}));
+      return 'A gravação anterior ('+(antigo.atualizado_email||'?')+') foi mantida. Tente gravar de novo.';
+    }
+    snapCheca(await Cloud.from('competencia_snapshot').delete().eq('ferramenta',f).eq('competencia',comp));
+    return 'Nada ficou gravado. Tente de novo.';
+  }catch(e){ return '⚠ A gravação pode ter ficado incompleta. Confira em ↺ Restaurar e grave de novo.'; } }
+async function snapSaveCore(f, competencia, resumo, itens, coletar){
   if(!(window.Cloud && Cloud.on && Cloud.on())){ alert('Para gravar na nuvem, entre com e-mail e senha (o acesso local pela senha mestra não grava).'); return; }
   var comp=snapPedirComp(competencia); if(!comp) return;
-  itens=itens||[];
-  // trava de privacidade: nada com cara de CPF (11 dígitos) nem campo cpf/nome sai do navegador
-  var bruto=JSON.stringify({resumo:resumo||{}, itens:itens});
-  if(/(^|[^\d])\d{11}([^\d]|$)/.test(bruto) || /"(cpf|nome)"\s*:/i.test(bruto)){
-    alert('Gravação bloqueada: o conteúdo desta tela tem CPF ou nome, que não podem ir para a nuvem.\nAvise para ajustarmos o que é gravado.');
-    return;
-  }
+  if(!(await snapSessaoOk())) return;
+  var d={resumo:snapNum(resumo||{}), itens:snapNum(itens||[])};
+  if(!snapPrivOk(d)) return;
+  var antigo=null, antigos=null, juntadas=0;
   try{
-    var ex=await Cloud.from('competencia_snapshot').select('atualizado_email,atualizado_em,itens')
-      .eq('ferramenta',ferramenta).eq('competencia',comp).limit(1);
-    if(ex && ex.error) throw ex.error;
+    var ex=snapCheca(await Cloud.from('competencia_snapshot').select('resumo,itens,atualizado_email,atualizado_em').eq('ferramenta',f).eq('competencia',comp).limit(1));
     if(ex && ex.data && ex.data.length){
-      var a=ex.data[0], quando=a.atualizado_em? new Date(a.atualizado_em).toLocaleString('pt-BR'):'?';
-      if(!confirm('Já existe uma gravação de '+comp+' em "'+SNAP_NOMES[ferramenta]+'",\nfeita por '+(a.atualizado_email||'outro usuário')+' em '+quando+'.\n\nSubstituir pela situação atual?')) return;
+      antigo=ex.data[0]; antigos=await snapRestItens(f,comp);
+      var dec=await snapDecide(f,comp,antigo,antigos,d.itens);
+      if(dec==='cancelar') return;
+      if(dec==='juntar'){ juntadas=snapJuntar(f,antigos,d.itens);
+        if(juntadas && coletar){ var n=coletar(); if(!n) return; d={resumo:snapNum(n.resumo||{}), itens:snapNum(n.itens||[])}; if(!snapPrivOk(d)) return; } }
     }
-    var up=await Cloud.from('competencia_snapshot').upsert({
-      ferramenta:ferramenta, competencia:comp, resumo:resumo||{}, itens:itens.length,
-      atualizado_em:new Date().toISOString(), atualizado_email:Cloud.email()
-    },{onConflict:'ferramenta,competencia'});
-    if(up && up.error) throw up.error;
-    // detalhe: apaga o da gravação anterior e insere o atual, em lotes
-    var del=await Cloud.from('competencia_item').delete().eq('ferramenta',ferramenta).eq('competencia',comp);
-    if(del && del.error) throw del.error;
-    for(var i=0;i<itens.length;i+=500){
-      var lote=itens.slice(i,i+500).map(function(x,j){ return {ferramenta:ferramenta, competencia:comp, ordem:i+j+1,
-        matricula:String(x.matricula||''), tipo:String(x.tipo||''), valor:x.valor||{}}; });
-      var ins=await Cloud.from('competencia_item').insert(lote);
-      if(ins && ins.error) throw ins.error;
-    }
-    alert('Competência '+comp+' gravada na nuvem.\n'+SNAP_NOMES[ferramenta]+' · '+itens.length+' item(ns) de detalhe.');
-    if(typeof lmtCarregarNuvem==='function') lmtCarregarNuvem();   // letreiro já mostra a gravação nova
-  }catch(e){
-    var m=String((e&&e.message)||e);
-    if(/relation .* does not exist|competencia_snapshot|42P01/i.test(m)) m='as tabelas ainda não existem no Supabase — rode o arquivo schema-competencias.sql no SQL Editor.';
-    alert('Não consegui gravar: '+m);
-  }
+  }catch(e){ alert('Não consegui consultar a nuvem antes de gravar: '+snapErroTxt(e)+'.\n\nNada foi alterado.'); return; }
+  try{
+    snapCheca(await Cloud.from('competencia_snapshot').upsert({ferramenta:f, competencia:comp, resumo:d.resumo, itens:d.itens.length,
+      atualizado_em:new Date().toISOString(), atualizado_email:Cloud.email()},{onConflict:'ferramenta,competencia'}));
+    snapCheca(await Cloud.from('competencia_item').delete().eq('ferramenta',f).eq('competencia',comp));
+    await snapInsereItens(f,comp,d.itens);
+    // confere: a nuvem tem que ter registrado TODOS os itens
+    var cnt=snapCheca(await Cloud.from('competencia_item').select('ordem',{count:'exact',head:true}).eq('ferramenta',f).eq('competencia',comp));
+    if(cnt && typeof cnt.count==='number' && cnt.count!==d.itens.length) throw new Error('a nuvem registrou '+cnt.count+' de '+d.itens.length+' itens');
+  }catch(e){ var volta=await snapDesfaz(f,comp,antigo,antigos); alert('Não consegui gravar: '+snapErroTxt(e)+'.\n\n'+volta); return; }
+  alert('Competência '+comp+' gravada na nuvem e conferida.\n'+SNAP_NOMES[f]+' · '+d.itens.length+' item(ns) de detalhe.'+
+    (juntadas?'\n\n'+juntadas+' servidor(es) receberam marcações da gravação anterior (juntadas à sua tela).':''));
+  if(typeof lmtCarregarNuvem==='function') lmtCarregarNuvem();   // letreiro/Panorama já mostram a gravação nova
 }
 
-/* --- coletores: o "cenário atual" de cada tela --- */
+/* --- coletores: o "cenário atual" de cada tela (as funções ...Dados podem ser chamadas de novo depois de juntar) --- */
 function snapEnvio(){
   if(!envFolha.length){ alert('Importe a folha (esperados) antes de gravar.'); return; }
+  var d=snapEnvioDados(); snapSave('envio', envComp(), d.resumo, d.itens, snapEnvioDados);
+}
+function snapEnvioDados(){
   var c=envCompute(), itens=[];
   c.folMap.forEach(function(o){
     var mat=(o.mats||[]).join(', '), base={categoria:o.categoria||'', situacao:o.situacao||'', gerado:!!o.gerado, tipos:o.tipos||'',
@@ -4101,11 +4258,14 @@ function snapEnvio(){
     itens.push({matricula:r?((r.NUMFUNC||'')+'/'+(r.NUMVINC||'')):'', tipo:'fora_da_lista', valor:{tipos:x.tipos||''}}); });
   // atenção: em envCompute, "enviados" e "pend" são LISTAS de pessoas (com CPF/nome) — aqui só vai a contagem
   var n=function(x){ return Array.isArray(x)? x.length : (+x||0); };
-  snapSave('envio', envComp(), {formato:2, esperados:n(c.esperados), vinculos:n(c.vinculos), gerados:n(c.gerados), enviados:n(c.enviados),
-    a_enviar:n(c.restante), pendentes:n(c.pend), pendencias_resolvidas:n(c.resolvidas), gerados_fora_da_lista:n(c.fora)}, itens);
+  return {resumo:{formato:2, esperados:n(c.esperados), vinculos:n(c.vinculos), gerados:n(c.gerados), enviados:n(c.enviados),
+    a_enviar:n(c.restante), pendentes:n(c.pend), pendencias_resolvidas:n(c.resolvidas), gerados_fora_da_lista:n(c.fora)}, itens:itens};
 }
 function snapConfronto(){
   if(!processed.length){ alert('Processe o arquivo de divergências antes de gravar.'); return; }
+  var d=snapConfrontoDados(); snapSave('confronto', d.comp, d.resumo, d.itens, snapConfrontoDados);
+}
+function snapConfrontoDados(){
   var por={}; processed.forEach(function(p){ var b=displayBucket(p); por[b]=(por[b]||0)+1; });
   var comps={}; processed.forEach(function(p){ if(p.ano&&p.mes) comps[String(p.mes).padStart(2,'0')+'/'+p.ano]=1; });
   // linhas cruas de cada pessoa (ERGON e eSocial), para a tela poder ser remontada depois (Restaurar).
@@ -4130,26 +4290,34 @@ function snapConfronto(){
            observacao:obsLimpa(p.obs), regime:p.regime||'', situacao:p.situacao||'', ano:String(p.ano||''), mes:String(p.mes||''), linhas:linhas(cru.get(p.key))};
     var h=honor(p); if(h) v.honor=h;
     return {matricula:p.mat||'', tipo:displayBucket(p), valor:v}; });
-  snapSave('confronto', Object.keys(comps).sort().join(', '), {formato:2, total:processed.length, por_grupo:por,
-    honorarios:(typeof honorLoaded!=='undefined'&&honorLoaded)?'carregada':'nao carregada'}, itens);
+  return {comp:Object.keys(comps).sort().join(', '), resumo:{formato:2, total:processed.length, por_grupo:por,
+    honorarios:(typeof honorLoaded!=='undefined'&&honorLoaded)?'carregada':'nao carregada'}, itens:itens};
 }
 function snapInexist(){
   if(!inxItems.length){ alert('Importe o relatório de não localizados antes de gravar.'); return; }
+  var d=snapInexistDados(); snapSave('inexistentes', inxCompTxt, d.resumo, d.itens, snapInexistDados);
+}
+function snapInexistDados(){
   var c=inxCounts();
   var itens=inxItems.map(function(i){ return {matricula:i.mat||'', tipo:i.bucket,
     valor:{situacao:(i.cls&&i.cls.situacao)||'', tipo_vinculo:i.tipovinc||'', crmen:(i.crs||[]).join(', '),
            linhas:i.n||1, fora_da_base:!i.rec, observacao:obsLimpa(obsGet('inexistentes',inxCompTxt,i.cpf+'|'+i.mat)),
            evento_automatico:i.auto, evento_manual:i.manualEv||'', situacao_manual:i.st||'',
            ano:String(i.ano||''), mes:String(i.mes||''), numpens:String(i.pens||'')}}; });
-  snapSave('inexistentes', inxCompTxt, {formato:2, total:c.total, s1200:c['S-1200']||0, s1202:c['S-1202']||0, s1207:c['S-1207']||0,
-    revisar:c['REVISAR']||0, beneficios:c['BENEFICIO']||0, justificadas:c['JUSTIFICADA']||0, fora_da_base:c.semBase||0}, itens);
+  return {resumo:{formato:2, total:c.total, s1200:c['S-1200']||0, s1202:c['S-1202']||0, s1207:c['S-1207']||0,
+    revisar:c['REVISAR']||0, beneficios:c['BENEFICIO']||0, justificadas:c['JUSTIFICADA']||0, fora_da_base:c.semBase||0}, itens:itens};
 }
 function snapInss(){
   if(!inssFolha.size || !inssEso.size){ alert('Importe a folha RGPS e o S-5001 antes de gravar.'); return; }
   // a competência vem do campo do cabeçalho; resolve ANTES para as observações serem as da competência certa
   var comp=snapPedirComp(inssComp()); if(!comp) return;
+  inssObsMigra(comp);
   var ce=document.getElementById('inssComp');
   if(ce && ce.value.trim()!==comp){ ce.value=comp; try{ localStorage.setItem('esocial_inss_comp',comp); }catch(e){} inssRenderList(inssCompute()); }
+  var col=function(){ return snapInssDados(comp); }, d=col();
+  snapSave('inss', comp, d.resumo, d.itens, col);
+}
+function snapInssDados(comp){
   var o=function(cpf){ return obsLimpa(obsGet('inss',comp,cpf)); }, ja=new Set();
   var c=inssCompute(), itens=[];
   c.divBase.forEach(function(x){ ja.add(x.cpf); itens.push({matricula:x.mat||'', tipo:'div_base', valor:{folha:x.folha, esocial:x.eso, diferenca:x.dif, observacao:o(x.cpf)}}); });
@@ -4166,9 +4334,10 @@ function snapInss(){
     d.eso={cat:e.cat||'', base:snapR2(e.base), inss:snapR2(e.inss), segEmp:snapR2(e.segEmp), segCI:snapR2(e.segCI), baseEmp:snapR2(e.baseEmp), baseCI:snapR2(e.baseCI)}; });
   dados.forEach(function(d,cpf){ var v={}; if(d.folha) v.folha=d.folha; if(d.eso) v.eso=d.eso; var t=o(cpf); if(t) v.observacao=t;
     itens.push({matricula:d.mat||'', tipo:'dados', valor:v}); });
-  snapSave('inss', comp, {formato:2, dctf_esocial:c.dctf, dctf_folha:c.dctfFolha, falta_no_esocial:c.faltaEso.length,
-    falta_na_folha:c.faltaFolha.length, div_base:c.divBase.length, div_inss:c.divInss.length, parametros:inssParams}, itens);
+  return {resumo:{formato:2, dctf_esocial:c.dctf, dctf_folha:c.dctfFolha, falta_no_esocial:c.faltaEso.length,
+    falta_na_folha:c.faltaFolha.length, div_base:c.divBase.length, div_inss:c.divInss.length, parametros:inssParams}, itens:itens};
 }
+
 document.addEventListener('click',function(e){
   var b=e.target.closest('[data-snap]'); if(!b) return;
   e.preventDefault();
@@ -4219,7 +4388,7 @@ async function snapRestAbrir(f){
         '<button type="button" class="rest-go" data-rest-f="'+f+'" data-rest-i="'+i+'">Restaurar</button></div>'; }).join('')+'</div>';
     var b=C.querySelector('.rest-go'); if(b) b.focus();
   }catch(e){ var msg=String((e&&e.message)||e); if(/relation .* does not exist|42P01/i.test(msg)) msg='as tabelas de competências ainda não existem no Supabase.';
-    C.innerHTML='<div class="rest-msg">Não consegui buscar as gravações: '+obsEsc(msg)+'</div>'; }
+    C.innerHTML='<div class="rest-msg">Não consegui buscar as gravações: '+obsEsc(snapErroTxt(e))+'</div>'; }
 }
 // itens em páginas de 1000 (limite padrão do Supabase por consulta)
 async function snapRestItens(f,comp){
@@ -4239,7 +4408,7 @@ async function snapRestaurar(f,i,btn){
     if(!info) return;   // recusado (ex.: gravação antiga do INSS) — o motivo já foi avisado
     snapRestFechar(); snapRestBanner(f,x,info);
     if(window.__appScrollTop) window.__appScrollTop(true);
-  }catch(e){ alert('Não consegui restaurar: '+String((e&&e.message)||e)); }
+  }catch(e){ alert('Não consegui restaurar: '+snapErroTxt(e)+'.'); }
   finally{ btn.disabled=false; btn.textContent='Restaurar'; }
 }
 function snapRestBanner(f,x,info){
@@ -4257,7 +4426,7 @@ function snapRestAvisoBase(n,oq){ return n? '<b>'+lmtN(n)+'</b> '+oq+' não '+(n
 // observações da tela/competência restaurada substituem as guardadas neste navegador
 function obsTrocaComp(tool,comp,pares){ var a=obsAll(), c=comp||'-'; a[tool]=a[tool]||{}; a[tool][c]={};
   pares.forEach(function(p){ if(String(p[1]||'').trim()) a[tool][c][p[0]]=String(p[1]); });
-  try{ localStorage.setItem(OBS_KEY,JSON.stringify(a)); }catch(e){} }
+  try{ localStorage.setItem(OBS_KEY,JSON.stringify(a)); }catch(e){ lsFalhou(e); } }
 function snapRestRec(mats){ for(var i=0;i<mats.length;i++){ var r=byMat.get(mats[i]); if(r) return r; } return null; }
 
 function snapRestEnvio(x,itens){
@@ -4318,7 +4487,7 @@ function snapRestInexist(x,itens){
   return {aviso:av.join('<br>')};
 }
 function snapRestConfronto(x,itens){
-  var R=x.resumo||{}, cm=/^(\d{2})\/(\d{4})/.exec(x.competencia)||[], rows=[], ov=[], st=[], ob=[], hon=new Map(), semLinhas=0, semBase=0;
+  var R=x.resumo||{}, cm=/^(\d{2})\/(\d{4})/.exec(x.competencia)||[], rows=[], ov=[], st=[], ob=[], chaves=[], hon=new Map(), semLinhas=0, semBase=0;
   itens.forEach(function(it){
     var v=it.valor||{}, mat=String(it.matricula||''), rec=(mat&&mat!=='/')?byMat.get(mat):null, cpf=rec?padCpf(rec.CPF):'', p=mat.split('/');
     if(!rec) semBase++;
@@ -4330,12 +4499,16 @@ function snapRestConfronto(x,itens){
         rows.push(r); }); }
     else { semLinhas++; rows.push({CPF:cpf, NUMFUNC:p[0]||'', NUMVINC:p[1]||'', ANO:ano, MES:mes, ORIGEM:'ERGON', DIVERGENCIAS:''}); }
     var key=cpf+'|'+mat+'|'+ano+'|'+mes;   // a mesma chave que o processDivergences monta
+    chaves.push(key);
     if(v.manual && v.evento) ov.push([key,v.evento]);
     if(v.situacao_manual) st.push([key,v.situacao_manual]);
     if(v.observacao) ob.push([key,v.observacao]);
     if(v.honor) hon.set(mat+'|'+ano+'|'+mes,{h774:+v.honor.h774||0, h8999:+v.honor.h8999||0, h4015:+v.honor.h4015||0, raw:{}});
   });
   if(!rows.length){ alert('Essa gravação não tem servidores para remontar.'); return null; }
+  // as marcações guardadas neste navegador para estes servidores passam a ser exatamente as da gravação
+  var ovM=new Map(ov), stM=new Map(st), ma=cmpMarksAll();
+  chaves.forEach(function(k){ ma=cmpMarkSet(k,{ev:ovM.get(k)||'', st:stM.get(k)||''},ma); }); cmpMarksGrava(ma);
   if(honorLoaded){ var hc=$('#btnHonorClear'); if(hc) hc.click(); }
   clearDivergences();
   manualOverrides=new Map(ov); manualStatus=new Map(st); manualObs=new Map(ob);
@@ -4383,12 +4556,17 @@ document.addEventListener('keydown',function(e){ if(e.key!=='Escape') return; va
    salva no navegador a cada tecla (esocial_obs_v1 = {tela:{competencia:{chave:texto}}})
    e vai para a nuvem junto com o "Gravar competência" de cada tela.                     */
 var OBS_KEY='esocial_obs_v1';
+// o navegador recusou guardar (armazenamento cheio, bloqueado ou janela anônima): avisa UMA vez, em vez de perder em silêncio
+var lsAvisou=false;
+function lsFalhou(e){ if(lsAvisou) return; lsAvisou=true;
+  alert('Atenção: este navegador não conseguiu guardar suas últimas marcações (armazenamento cheio, bloqueado ou janela anônima).\n\n'+
+    'Para não perdê-las, grave a competência na nuvem (☁ Gravar competência). Se continuar, libere espaço ou use outro navegador.'); }
 function obsAll(){ try{ return JSON.parse(localStorage.getItem(OBS_KEY))||{}; }catch(e){ return {}; } }
 function obsGet(tool,comp,key){ var a=obsAll(); return (((a[tool]||{})[comp||'-'])||{})[key]||''; }
 function obsSet(tool,comp,key,val){
   var a=obsAll(), c=comp||'-'; a[tool]=a[tool]||{}; a[tool][c]=a[tool][c]||{};
   if(String(val||'').trim()) a[tool][c][key]=String(val); else delete a[tool][c][key];
-  try{ localStorage.setItem(OBS_KEY,JSON.stringify(a)); }catch(e){}
+  try{ localStorage.setItem(OBS_KEY,JSON.stringify(a)); }catch(e){ lsFalhou(e); }
 }
 function obsEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function obsField(tool,comp,key){
@@ -4405,11 +4583,18 @@ function obsLimpa(s){ return String(s||'').replace(/\d{3}\.?\d{3}\.?\d{3}-?\d{2}
 
 /* INSS não trazia competência: campo no cabeçalho, lembrado no navegador */
 function inssComp(){ var el=document.getElementById('inssComp'), v=el?String(el.value||'').trim():''; return snapCompOk(v)? v : ''; }
+// observações digitadas ANTES de preencher a competência ficavam no balde "-" e sumiam quando a competência
+// era informada (e não iam para a gravação): passam para a competência, sem sobrescrever o que já existir nela
+function inssObsMigra(comp){ if(!comp) return; var a=obsAll(), s=(a.inss||{})['-'];
+  if(!s || !Object.keys(s).length) return;
+  a.inss[comp]=Object.assign({}, s, a.inss[comp]||{}); delete a.inss['-'];
+  try{ localStorage.setItem(OBS_KEY,JSON.stringify(a)); }catch(e){ lsFalhou(e); } }
 (function(){
   var el=document.getElementById('inssComp'); if(!el) return;
   try{ el.value=localStorage.getItem('esocial_inss_comp')||''; }catch(e){}
   el.addEventListener('input',function(){
     try{ localStorage.setItem('esocial_inss_comp',el.value.trim()); }catch(e){}
+    if(inssComp()) inssObsMigra(inssComp());
     if(inssFolha.size||inssEso.size) inssRenderList(inssCompute());   // observações mudam com a competência
   });
 })();
@@ -5113,6 +5298,13 @@ try{
   const raw=localStorage.getItem(SESSION_KEY);
   if(raw){
     const s=JSON.parse(raw);
+    // migração: marcações que só existiam na sessão passam para o armazenamento próprio (sem sobrescrever o que já houver)
+    if(s && ((s.overrides||[]).length || (s.status||[]).length)){
+      let a=cmpMarksAll();
+      (s.overrides||[]).forEach(([k,v])=>{ if(v && !(a[k]&&a[k].ev)) a=cmpMarkSet(k,{ev:v},a); });
+      (s.status||[]).forEach(([k,v])=>{ if(v && !(a[k]&&a[k].st)) a=cmpMarkSet(k,{st:v},a); });
+      cmpMarksGrava(a);
+    }
     if(s && s.divRows && s.divRows.length){
       const when = s.savedAt ? new Date(s.savedAt).toLocaleString('pt-BR') : '';
       const nov = (s.overrides||[]).length;
