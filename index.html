@@ -72,6 +72,16 @@
   /* restaurar competência gravada */
   .basebox .rest-btn{border-color:var(--line);color:var(--ink)}
   .basebox .rest-btn:hover{border-color:var(--action);color:var(--action)}
+  .basebox .snap-estado{display:block;margin-top:5px;font-size:11.5px;font-weight:600;cursor:help}
+  .basebox .snap-estado:empty{display:none}
+  .snap-estado.pend{color:#B45309}
+  .snap-estado.ok{color:#0F7A4A}
+  html[data-theme="dark"] .snap-estado.pend{color:#FBBF24}
+  html[data-theme="dark"] .snap-estado.ok{color:#4ADE80}
+  .rest-hist{margin-top:6px;font-size:11.5px}
+  .rest-hist summary{cursor:pointer;color:var(--action);font-weight:600}
+  .rest-hist ul{margin:6px 0 0;padding-left:18px;color:var(--muted);line-height:1.55}
+  .rest-hist b{color:var(--ink);font-weight:600}
   .rest-modal{position:fixed;inset:0;z-index:2147483647;background:rgba(6,12,24,.62);display:flex;align-items:center;justify-content:center;padding:20px}
   .rest-modal.hidden{display:none}
   .rest-box{width:min(640px,100%);max-height:calc(100vh - 40px);overflow:auto;background:var(--surface);color:var(--ink);border:1px solid var(--line);
@@ -1280,7 +1290,7 @@
       <button id="btnBase">Atualizar base de servidores</button>
       <button id="btnRules">⚙ Ajustes</button>
       <button id="cmpClear">Limpar dados</button>
-      <button class="snap-btn" data-snap="confronto" type="button">&#9729; Gravar competência</button> <button class="rest-btn" data-snap-rest="confronto" type="button" title="Reabrir uma competência gravada na nuvem">&#8634; Restaurar</button>
+      <button class="snap-btn" data-snap="confronto" type="button">&#9729; Gravar competência</button> <button class="rest-btn" data-snap-rest="confronto" type="button" title="Reabrir uma competência gravada na nuvem">&#8634; Restaurar</button><span class="snap-estado" data-snap-estado="confronto" aria-live="polite"></span>
       <input type="file" id="fileBase" accept=".csv" class="hidden">
     </div>
   </header>
@@ -1461,7 +1471,7 @@
       <h1>Confer&ecirc;ncia de INSS (RGPS)</h1>
     </div>
     <div class="basebox">Compet&ecirc;ncia: <input id="inssComp" class="inss-comp" placeholder="MM/AAAA" maxlength="7" autocomplete="off"><br>
-      <button id="inssClear">Limpar</button> <button class="snap-btn" data-snap="inss" type="button">&#9729; Gravar competência</button> <button class="rest-btn" data-snap-rest="inss" type="button" title="Reabrir uma competência gravada na nuvem">&#8634; Restaurar</button></div>
+      <button id="inssClear">Limpar</button> <button class="snap-btn" data-snap="inss" type="button">&#9729; Gravar competência</button> <button class="rest-btn" data-snap-rest="inss" type="button" title="Reabrir uma competência gravada na nuvem">&#8634; Restaurar</button><span class="snap-estado" data-snap-estado="inss" aria-live="polite"></span></div>
   </header>
 
   <div class="rules" id="inssParams">
@@ -1578,7 +1588,7 @@
     <div class="basebox">
       Compet&ecirc;ncia: <b id="envComp">&mdash;</b><br>
       <button id="envClear">Limpar</button>
-      <button class="snap-btn" data-snap="envio" type="button">&#9729; Gravar competência</button> <button class="rest-btn" data-snap-rest="envio" type="button" title="Reabrir uma competência gravada na nuvem">&#8634; Restaurar</button>
+      <button class="snap-btn" data-snap="envio" type="button">&#9729; Gravar competência</button> <button class="rest-btn" data-snap-rest="envio" type="button" title="Reabrir uma competência gravada na nuvem">&#8634; Restaurar</button><span class="snap-estado" data-snap-estado="envio" aria-live="polite"></span>
     </div>
   </header>
 
@@ -1637,9 +1647,9 @@
       <h1>N&atilde;o localizados no eSocial</h1>
     </div>
     <div class="basebox">
-      Compet&ecirc;ncia: <b id="inxComp">&mdash;</b><br>
+      Compet&ecirc;ncia do relat&oacute;rio: <b id="inxComp">&mdash;</b><br>
       <button id="inxClear">Limpar</button>
-      <button class="snap-btn" data-snap="inexistentes" type="button">&#9729; Gravar competência</button> <button class="rest-btn" data-snap-rest="inexistentes" type="button" title="Reabrir uma competência gravada na nuvem">&#8634; Restaurar</button>
+      <button class="snap-btn" data-snap="inexistentes" type="button">&#9729; Gravar competência</button> <button class="rest-btn" data-snap-rest="inexistentes" type="button" title="Reabrir uma competência gravada na nuvem">&#8634; Restaurar</button><span class="snap-estado" data-snap-estado="inexistentes" aria-live="polite"></span>
     </div>
   </header>
 
@@ -4129,6 +4139,51 @@ function snapMarcasDe(f,itens){ var m=new Map(), temDados=(f==='inss') && (itens
     if(tem && k && k!=='/' && !m.has(k)) m.set(k,it); });
   return m; }
 function snapContaMarcas(f,itens){ return snapMarcasDe(f,itens).size; }
+
+/* ---------- "alterações não gravadas": compara as marcações da tela com as da última vez que esta competência
+   foi gravada ou restaurada NESTE navegador. Selo ao lado do botão Gravar + aviso ao fechar a aba (só com login). ---------- */
+var SNAP_EST_KEY='esocial_snap_estado_v1', SNAP_FERRS=['envio','inexistentes','confronto','inss'];
+function snapEstAll(){ try{ return JSON.parse(localStorage.getItem(SNAP_EST_KEY))||{}; }catch(e){ return {}; } }
+function snapObsDe(tool,comp){ var o=((obsAll()[tool]||{})[comp||'-'])||{};
+  return Object.keys(o).filter(function(k){ return String(o[k]).trim(); }).sort().map(function(k){ return [k,String(o[k])]; }); }
+// "retrato" das marcações da tela: {comp, ass (texto comparável), n (quantas)}; null quando a ferramenta está vazia
+function snapRetrato(f){
+  if(f==='envio'){ if(!envFolha.length) return null; var c=envComp(), ob=snapObsDe('envio',c);
+    var p=Array.from(envPend.entries()).sort(), s=Array.from(envSent.keys()).sort(), r=Array.from(envResolved.entries()).map(function(e){ return [e[0],(e[1]||{}).motivo||'']; }).sort();
+    return {comp:c||'-', ass:JSON.stringify([p,s,r,ob]), n:p.length+s.length+r.length+ob.length}; }
+  if(f==='inexistentes'){ if(!inxItems.length) return null; var c2=inxCompTxt||'-', mk=(inxMarksAll()[c2])||{}, ob2=snapObsDe('inexistentes',inxCompTxt);
+    var m2=Object.keys(mk).sort().map(function(k){ return [k,mk[k].ev||'',mk[k].st||'']; });
+    return {comp:c2, ass:JSON.stringify([m2,ob2]), n:m2.length+ob2.length}; }
+  if(f==='confronto'){ if(!processed.length) return null; var m3=[];
+    processed.forEach(function(p){ var e=p.manual?p.evento:'', st=p.status||'', o=String(p.obs||'').trim(); if(e||st||o) m3.push([p.key,e,st,o]); });
+    m3.sort(); return {comp:competencia||'-', ass:JSON.stringify(m3), n:m3.length}; }
+  if(f==='inss'){ if(!(inssFolha.size||inssEso.size)) return null; var c4=inssComp(), ob4=snapObsDe('inss',c4);
+    return {comp:c4||'-', ass:JSON.stringify(ob4), n:ob4.length}; }
+  return null; }
+function snapEstMarca(f,acao){ var r=snapRetrato(f); if(!r) return; var a=snapEstAll(); a[f]=a[f]||{};
+  a[f][r.comp]={ass:r.ass, em:new Date().toISOString(), acao:acao};
+  try{ localStorage.setItem(SNAP_EST_KEY,JSON.stringify(a)); }catch(e){} snapEstAtualiza(f); }
+function snapEstSujo(f){ var r=snapRetrato(f); if(!r) return false; var s=(snapEstAll()[f]||{})[r.comp]; return s? s.ass!==r.ass : r.n>0; }
+function snapEstAtualiza(f){ var el=document.querySelector('[data-snap-estado="'+f+'"]'); if(!el) return;
+  var r=snapRetrato(f), s=r && (snapEstAll()[f]||{})[r.comp];
+  if(!r || (!s && !r.n)){ el.className='snap-estado'; el.textContent=''; el.removeAttribute('title'); return; }
+  if(s && s.ass===r.ass){ el.className='snap-estado ok';
+    el.textContent='✓ '+(s.acao==='restaurado'?'igual à nuvem (restaurado)':'gravado na nuvem')+' · '+new Date(s.em).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    el.title='As marcações da tela são as mesmas da última vez que esta competência foi gravada ou restaurada neste navegador.'; return; }
+  el.className='snap-estado pend'; el.textContent='● alterações não gravadas';
+  el.title='Há marcações (pendências, reclassificações, situações ou observações) feitas depois da última gravação desta competência. Elas ficam guardadas neste navegador, mas só vão para a nuvem com ☁ Gravar competência.'; }
+var snapEstT=null;
+function snapEstAgenda(){ clearTimeout(snapEstT); snapEstT=setTimeout(function(){ SNAP_FERRS.forEach(snapEstAtualiza); },400); }
+['input','change','click','drop'].forEach(function(ev){ document.addEventListener(ev,snapEstAgenda,true); });
+setInterval(function(){ SNAP_FERRS.forEach(snapEstAtualiza); },5000);   // arquivos são lidos de forma assíncrona: confere de tempos em tempos
+window.addEventListener('beforeunload',function(e){
+  if(!(window.Cloud && Cloud.on && Cloud.on())) return;   // sem login não há onde gravar: não incomoda
+  if(SNAP_FERRS.some(function(f){ try{ return snapEstSujo(f); }catch(x){ return false; } })){ e.preventDefault(); e.returnValue=''; } });
+// histórico de gravações (guardado em resumo.historico) mostrado na lista do ↺ Restaurar
+function snapHistHtml(h){ if(!Array.isArray(h) || !h.length) return '';
+  return '<details class="rest-hist"><summary>Histórico de gravações ('+h.length+')</summary><ul>'+h.map(function(x){
+    return '<li><b>'+(x.em?new Date(x.em).toLocaleString('pt-BR'):'?')+'</b> · '+obsEsc(x.email||'?')+' — '+obsEsc(x.acao||'')+
+      (x.itens!=null?' · '+lmtN(x.itens)+' item(ns)':'')+(x.marcacoes!=null?' · '+lmtN(x.marcacoes)+' com marcação':'')+'</li>'; }).join('')+'</ul></details>'; }
 // janela de escolha (Juntar / Substituir / Cancelar); devolve uma Promise com o valor do botão
 function snapEscolha(titulo, texto, botoes){
   return new Promise(function(res){
@@ -4212,17 +4267,23 @@ async function snapSaveCore(f, competencia, resumo, itens, coletar){
   if(!(await snapSessaoOk())) return;
   var d={resumo:snapNum(resumo||{}), itens:snapNum(itens||[])};
   if(!snapPrivOk(d)) return;
-  var antigo=null, antigos=null, juntadas=0;
+  var antigo=null, antigos=null, juntadas=0, acao='primeira gravação';
   try{
     var ex=snapCheca(await Cloud.from('competencia_snapshot').select('resumo,itens,atualizado_email,atualizado_em').eq('ferramenta',f).eq('competencia',comp).limit(1));
     if(ex && ex.data && ex.data.length){
       antigo=ex.data[0]; antigos=await snapRestItens(f,comp);
+      var antesM=snapMarcasDe(f,antigos), agoraM=snapMarcasDe(f,d.itens), faltam=0; antesM.forEach(function(it,k){ if(!agoraM.has(k)) faltam++; });
       var dec=await snapDecide(f,comp,antigo,antigos,d.itens);
       if(dec==='cancelar') return;
-      if(dec==='juntar'){ juntadas=snapJuntar(f,antigos,d.itens);
+      acao = faltam ? 'substituiu a gravação anterior ('+faltam+' servidor(es) com marcação deixados de fora)' : 'atualizou';
+      if(dec==='juntar'){ juntadas=snapJuntar(f,antigos,d.itens); acao='juntou com a gravação anterior ('+juntadas+' servidor(es) trazidos)';
         if(juntadas && coletar){ var n=coletar(); if(!n) return; d={resumo:snapNum(n.resumo||{}), itens:snapNum(n.itens||[])}; if(!snapPrivOk(d)) return; } }
     }
   }catch(e){ alert('Não consegui consultar a nuvem antes de gravar: '+snapErroTxt(e)+'.\n\nNada foi alterado.'); return; }
+  // histórico de quem gravou (as 15 últimas), guardado no próprio resumo — aparece no ↺ Restaurar
+  var hAnt=(antigo && antigo.resumo && Array.isArray(antigo.resumo.historico)) ? antigo.resumo.historico
+         : (antigo ? [{em:antigo.atualizado_em, email:antigo.atualizado_email||'', acao:'gravação anterior', itens:antigo.itens||0}] : []);
+  d.resumo.historico=[{em:new Date().toISOString(), email:Cloud.email(), acao:acao, itens:d.itens.length, marcacoes:snapContaMarcas(f,d.itens)}].concat(hAnt).slice(0,15);
   try{
     snapCheca(await Cloud.from('competencia_snapshot').upsert({ferramenta:f, competencia:comp, resumo:d.resumo, itens:d.itens.length,
       atualizado_em:new Date().toISOString(), atualizado_email:Cloud.email()},{onConflict:'ferramenta,competencia'}));
@@ -4232,6 +4293,7 @@ async function snapSaveCore(f, competencia, resumo, itens, coletar){
     var cnt=snapCheca(await Cloud.from('competencia_item').select('ordem',{count:'exact',head:true}).eq('ferramenta',f).eq('competencia',comp));
     if(cnt && typeof cnt.count==='number' && cnt.count!==d.itens.length) throw new Error('a nuvem registrou '+cnt.count+' de '+d.itens.length+' itens');
   }catch(e){ var volta=await snapDesfaz(f,comp,antigo,antigos); alert('Não consegui gravar: '+snapErroTxt(e)+'.\n\n'+volta); return; }
+  snapEstMarca(f,'gravado');
   alert('Competência '+comp+' gravada na nuvem e conferida.\n'+SNAP_NOMES[f]+' · '+d.itens.length+' item(ns) de detalhe.'+
     (juntadas?'\n\n'+juntadas+' servidor(es) receberam marcações da gravação anterior (juntadas à sua tela).':''));
   if(typeof lmtCarregarNuvem==='function') lmtCarregarNuvem();   // letreiro/Panorama já mostram a gravação nova
@@ -4293,9 +4355,23 @@ function snapConfrontoDados(){
   return {comp:Object.keys(comps).sort().join(', '), resumo:{formato:2, total:processed.length, por_grupo:por,
     honorarios:(typeof honorLoaded!=='undefined'&&honorLoaded)?'carregada':'nao carregada'}, itens:itens};
 }
-function snapInexist(){
+// a competência vem das colunas ANO/MÊS do relatório (não do mês em que se está trabalhando): mostra antes de gravar
+// e deixa escolher outra — senão a gravação fica num mês e a pessoa procura em outro ("gravei e não salvou")
+async function snapInexist(){
   if(!inxItems.length){ alert('Importe o relatório de não localizados antes de gravar.'); return; }
-  var d=snapInexistDados(); snapSave('inexistentes', inxCompTxt, d.resumo, d.itens, snapInexistDados);
+  if(snapOcupado){ alert('Já há uma gravação em andamento. Aguarde ela terminar.'); return; }
+  var rel=inxCompTxt, ok=snapCompOk(rel);
+  var esc=await snapEscolha('Gravar · Não localizados no eSocial',
+    ok ? 'O relatório importado é da competência <b>'+obsEsc(rel)+'</b> (colunas ANO e MÊS do arquivo) e tem <b>'+inxItems.length+'</b> vínculo(s). '+
+         'A gravação fica nessa competência — é por ela que você vai achá-la depois em <b>&#8634; Restaurar</b>.'
+       : 'O relatório não traz uma competência única ('+obsEsc(rel||'sem ANO/MÊS')+'). Informe em qual competência gravar.',
+    ok ? [{v:'ok', t:'Gravar em '+obsEsc(rel)}, {v:'outra', t:'Gravar em outra competência…', d:'por exemplo, se o relatório se refere a outro mês de trabalho'}, {v:'cancelar', t:'Cancelar'}]
+       : [{v:'outra', t:'Informar a competência…'}, {v:'cancelar', t:'Cancelar'}]);
+  if(esc==='cancelar') return;
+  var comp=rel;
+  if(esc==='outra'){ var v=prompt('Em qual competência gravar? (formato MM/AAAA)', ok?rel:''); if(v==null) return; v=v.trim();
+    if(!snapCompOk(v)){ alert('Competência inválida. Use o formato MM/AAAA, por exemplo 12/2025.'); return; } comp=v; }
+  var d=snapInexistDados(); snapSave('inexistentes', comp, d.resumo, d.itens, snapInexistDados);
 }
 function snapInexistDados(){
   var c=inxCounts();
@@ -4372,6 +4448,7 @@ function snapRestTemDados(f){
 async function snapRestAbrir(f){
   if(!(window.Cloud && Cloud.on && Cloud.on())){ alert('Para restaurar da nuvem, entre com e-mail e senha (o acesso pela senha mestra não tem nuvem).'); return; }
   if(!baseRecs.length){ alert('Carregue primeiro a base de servidores (na tela inicial).\n\nA nuvem guarda só matrículas; os nomes e CPFs voltam da base deste navegador.'); return; }
+  if(!(await snapSessaoOk())) return;
   var m=snapRestModal(); m.classList.remove('hidden');
   document.getElementById('restH').textContent='Restaurar competência · '+SNAP_NOMES[f];
   document.getElementById('restSub').textContent='Escolha uma competência gravada. A tela é remontada a partir da nuvem, sem importar os arquivos; nomes e CPFs vêm da base de servidores deste navegador. Depois dá para continuar e gravar de novo.';
@@ -4384,7 +4461,7 @@ async function snapRestAbrir(f){
     C.innerHTML='<div class="rest-list">'+snapRestLista.map(function(x,i){ var R=x.resumo||{}, velho=R.formato!==2 && (f==='confronto'||f==='inss'||f==='envio');
       return '<div class="rest-row"><div class="rest-comp">'+obsEsc(x.competencia)+'</div><div class="rest-info">'+obsEsc(snapRestResumo(f,R))+
         '<small>gravada em '+(x.atualizado_em?new Date(x.atualizado_em).toLocaleString('pt-BR'):'?')+(x.atualizado_email?' por '+obsEsc(x.atualizado_email):'')+' · '+lmtN(x.itens||0)+' item(ns)</small>'+
-        (velho?'<span class="rest-old">'+(f==='inss'?'gravação antiga: não dá para remontar':'gravação antiga: reabre em parte')+'</span>':'')+'</div>'+
+        (velho?'<span class="rest-old">'+(f==='inss'?'gravação antiga: não dá para remontar':'gravação antiga: reabre em parte')+'</span>':'')+snapHistHtml(R.historico)+'</div>'+
         '<button type="button" class="rest-go" data-rest-f="'+f+'" data-rest-i="'+i+'">Restaurar</button></div>'; }).join('')+'</div>';
     var b=C.querySelector('.rest-go'); if(b) b.focus();
   }catch(e){ var msg=String((e&&e.message)||e); if(/relation .* does not exist|42P01/i.test(msg)) msg='as tabelas de competências ainda não existem no Supabase.';
@@ -4406,7 +4483,7 @@ async function snapRestaurar(f,i,btn){
     var itens=await snapRestItens(f,x.competencia);
     var info={envio:snapRestEnvio, inexistentes:snapRestInexist, confronto:snapRestConfronto, inss:snapRestInss}[f](x,itens);
     if(!info) return;   // recusado (ex.: gravação antiga do INSS) — o motivo já foi avisado
-    snapRestFechar(); snapRestBanner(f,x,info);
+    snapRestFechar(); snapRestBanner(f,x,info); snapEstMarca(f,'restaurado');
     if(window.__appScrollTop) window.__appScrollTop(true);
   }catch(e){ alert('Não consegui restaurar: '+snapErroTxt(e)+'.'); }
   finally{ btn.disabled=false; btn.textContent='Restaurar'; }
