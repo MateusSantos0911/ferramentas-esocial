@@ -1066,7 +1066,7 @@
           <div class="lm-st-k">Base de servidores</div>
           <div class="lm-st-v no" id="menuBaseYN">N&atilde;o</div>
           <div class="lm-st-n hidden" id="menuBaseCount"></div>
-          <input type="file" id="menuBaseFile" accept=".csv" class="hidden">
+          <input type="file" id="menuBaseFile" accept=".csv,.xlsx,.xls" class="hidden">
           <div class="lm-st-acts">
             <button type="button" class="lm-mini" id="menuBaseBtn">Carregar base</button>
             <button type="button" class="lm-mini danger hidden" id="menuBaseClear" title="Limpar base">&times;</button>
@@ -1291,7 +1291,7 @@
       <button id="btnRules">⚙ Ajustes</button>
       <button id="cmpClear">Limpar dados</button>
       <button class="snap-btn" data-snap="confronto" type="button">&#9729; Gravar competência</button> <button class="rest-btn" data-snap-rest="confronto" type="button" title="Reabrir uma competência gravada na nuvem">&#8634; Restaurar</button><span class="snap-estado" data-snap-estado="confronto" aria-live="polite"></span>
-      <input type="file" id="fileBase" accept=".csv" class="hidden">
+      <input type="file" id="fileBase" accept=".csv,.xlsx,.xls" class="hidden">
     </div>
   </header>
 
@@ -1803,8 +1803,13 @@ function parseCSV(text){
 }
 
 /* ---------- base index ---------- */
-let baseRecs = BASE_DATA;
+let baseRecs = BASE_DATA;          // vínculos de SERVIDOR (uma linha por NUMFUNC/NUMVINC) — é o que as telas contam
 let byMat = new Map(), byCpf = new Map();
+/* base no formato novo (consulta base_pessoas_pge, coluna TIPO_PESSOA): além dos servidores traz
+   pensionistas (identificados por NUMFUNC/NUMVINC/NUMPENS) e dependentes. Ficam em listas próprias:
+   pensionistas entram na classificação (S-1207); dependentes e "sem vínculo" só servem para achar nome por CPF. */
+let basePens = [], baseOutros = [];
+let byPens = new Map(), byCpfPens = new Map(), byCpfOutros = new Map();
 // cabeçalhos que caíram nas colunas E/L/M/O da planilha (para conferência na tela inicial)
 let baseCols=null; try{ baseCols=JSON.parse(localStorage.getItem('esocial_base_cols')||'null'); }catch(e){}
 const BASE_STORAGE_KEY='esocial_base_v1';
@@ -1812,7 +1817,9 @@ function saveBaseToStorage(){
   // a base mora no IndexedDB. A cópia antiga no localStorage (~2 MB) disputava espaço com as marcações das ferramentas
   // (pendências, observações, sessão do Confronto): só é usada se o IndexedDB não estiver disponível.
   var legado=function(){ try{ localStorage.setItem(BASE_STORAGE_KEY, JSON.stringify(baseRecs)); }catch(e){} };
-  if(window.indexedDB){ try{ baseIdbSet('baseRecs', baseRecs).then(function(){ try{ localStorage.removeItem(BASE_STORAGE_KEY); }catch(e){} }, legado); return; }catch(e){} }
+  if(window.indexedDB){ try{ baseIdbSet('baseRecs', baseRecs)
+      .then(function(){ return baseIdbSet('baseExtra', {pens:basePens, outros:baseOutros}); })
+      .then(function(){ try{ localStorage.removeItem(BASE_STORAGE_KEY); }catch(e){} }, legado); return; }catch(e){} }
   legado();
 }
 function loadBaseFromStorage(){
@@ -1844,8 +1851,58 @@ function indexBase(){
     const cpf = padCpf(r.CPF);
     if(cpf){ if(!byCpf.has(cpf)) byCpf.set(cpf,[]); byCpf.get(cpf).push(r); }
   }
+  byPens.clear(); byCpfPens.clear(); byCpfOutros.clear();
+  for(const p of basePens){
+    byPens.set(baseZ(p.NUMFUNC)+'/'+baseZ(p.NUMVINC)+'/'+baseZ(p.NUMPENS), p);
+    const c=padCpf(p.CPF); if(c){ if(!byCpfPens.has(c)) byCpfPens.set(c,[]); byCpfPens.get(c).push(p); }
+  }
+  for(const o of baseOutros){ const c=padCpf(o.CPF); if(c){ if(!byCpfOutros.has(c)) byCpfOutros.set(c,[]); byCpfOutros.get(c).push(o); } }
   setBaseCountUI();
 }
+function baseZ(x){ return String(x==null?'':x).trim().replace(/^0+(?=\d)/,''); }   // "01" e "1" são o mesmo número
+// pensionista de um vínculo: pelo NUMPENS; sem NUMPENS, pelo CPF entre os pensionistas daquele mesmo vínculo
+function basePensDe(numfunc,numvinc,numpens,cpf){
+  if(!basePens.length) return null;
+  if(baseZ(numpens)){ var p=byPens.get(baseZ(numfunc)+'/'+baseZ(numvinc)+'/'+baseZ(numpens)); if(p) return p; }
+  cpf=padCpf(cpf); var l=cpf && byCpfPens.get(cpf); if(!l) return null;
+  for(var i=0;i<l.length;i++) if(baseZ(l[i].NUMFUNC)===baseZ(numfunc) && baseZ(l[i].NUMVINC)===baseZ(numvinc)) return l[i];
+  return null; }
+/* acha na base a pessoa de uma linha de relatório (Confronto, Não localizados, restauração):
+   1º pensionista (NUMPENS, ou CPF de pensionista do mesmo vínculo); 2º servidor pela matrícula; 3º servidor pelo CPF;
+   4º pensionista só pelo CPF. Com NUMPENS preenchido e pensionista não encontrado, NÃO cai no vínculo do instituidor. */
+function baseAcha(numfunc,numvinc,cpf,numpens){
+  var temPens=baseZ(numpens)!=='', p=basePensDe(numfunc,numvinc,numpens,cpf);
+  if(p) return {rec:p, por: temPens?'pensionista (NUMPENS)':'pensionista (CPF)'};
+  if(temPens) return {rec:null, por:null};
+  var rec=byMat.get((numfunc||'')+'/'+(numvinc||'')); if(rec) return {rec:rec, por:'matrícula'};
+  cpf=padCpf(cpf); var l=cpf && byCpf.get(cpf); if(l && l.length) return {rec:l[0], por:'CPF'};
+  var lp=cpf && byCpfPens.get(cpf); if(lp && lp.length) return {rec:lp[0], por:'pensionista (CPF)'};
+  return {rec:null, por:null}; }
+// nome de quem tem aquele CPF: servidor, depois pensionista, por último dependente / sem vínculo (com a indicação)
+function baseNomeCpf(cpf){ cpf=padCpf(cpf); if(!cpf) return '';
+  var l=byCpf.get(cpf); if(l && l[0] && l[0].NOME) return l[0].NOME;
+  l=byCpfPens.get(cpf); if(l && l[0] && l[0].NOME) return l[0].NOME+' (pensionista)';
+  l=byCpfOutros.get(cpf); if(l && l[0] && l[0].NOME) return l[0].NOME+(l[0].TIPO==='DEPENDENTE'?' (dependente)':' (sem vínculo)');
+  return ''; }
+// datas da planilha (texto dd/mm/aaaa, aaaa-mm-dd, dd/mm/aa, dd-MON-aa, data do Excel) -> sempre dd/mm/aaaa
+function baseData(v){
+  if(v==null || v==='') return '';
+  var m, d, pad=function(n){ return String(n).padStart(2,'0'); }, sai=function(D,M,Y){ return pad(D)+'/'+pad(M)+'/'+Y; },
+      ano=function(y){ y=+y; return y<100 ? (y<50?2000+y:1900+y) : y; };
+  if(v instanceof Date){ if(isNaN(v)) return ''; d=new Date(v.getTime()+12*3600*1000); return sai(d.getDate(),d.getMonth()+1,d.getFullYear()); }
+  if(typeof v==='number'){ if(v<60 || v>80000) return ''; d=new Date(Math.round((v-25569)*86400*1000)); return sai(d.getUTCDate(),d.getUTCMonth()+1,d.getUTCFullYear()); }
+  var s=String(v).trim(); if(!s) return '';
+  if((m=/^(\d{4})-(\d{1,2})-(\d{1,2})/.exec(s))) return sai(+m[3],+m[2],+m[1]);
+  if((m=/^(\d{1,2})[\/\-.](\d{1,2})[\/\-.](\d{2,4})/.exec(s))) return sai(+m[1],+m[2],ano(m[3]));
+  if((m=/^(\d{1,2})[\/\-. ]([A-Za-z]{3})[A-Za-z]*[\/\-. ](\d{2,4})/.exec(s))){
+    var MES={JAN:1,FEV:2,FEB:2,MAR:3,ABR:4,APR:4,MAI:5,MAY:5,JUN:6,JUL:7,AGO:8,AUG:8,SET:9,SEP:9,OUT:10,OCT:10,NOV:11,DEZ:12,DEC:12}, mm=MES[m[2].toUpperCase()];
+    if(mm) return sai(+m[1],mm,ano(m[3])); }
+  if(/^\d{5}$/.test(s)) return baseData(+s);
+  return s; }
+// cabeçalhos tolerantes: sem acento, maiúsculas, espaços/pontuação viram "_"  ->  nome real da coluna no arquivo
+function baseCab(linha){ var m={}; Object.keys(linha||{}).forEach(function(k){
+  var n=String(k).replace(/^﻿/,'').trim().toUpperCase().normalize('NFD').replace(/[̀-ͯ]/g,'').replace(/[^A-Z0-9]+/g,'_').replace(/^_+|_+$/g,'');
+  if(n && !(n in m)) m[n]=k; }); return m; }
 
 /* ---------- base compartilhada: IndexedDB (não estoura como localStorage) + status no menu ---------- */
 function baseIdb(){ return new Promise(function(res,rej){ var r=indexedDB.open('esocial-base',1);
@@ -1874,13 +1931,66 @@ function updateMenuBaseUI(){
 }
 function loadBaseAsync(){
   if(!window.indexedDB) return;
-  baseIdbGet('baseRecs').then(function(a){
-    if(Array.isArray(a)&&a.length){ baseRecs=a; indexBase(); updateBaseUI(true); updateMenuBaseUI(); try{ localStorage.removeItem(BASE_STORAGE_KEY); }catch(e){} }   // libera a cópia antiga
+  Promise.all([baseIdbGet('baseRecs'), baseIdbGet('baseExtra').catch(function(){ return null; })]).then(function(v){ var a=v[0], x=v[1]||{};
+    if(Array.isArray(a)&&a.length){ baseRecs=a; basePens=Array.isArray(x.pens)?x.pens:[]; baseOutros=Array.isArray(x.outros)?x.outros:[];
+      indexBase(); updateBaseUI(true); updateMenuBaseUI(); try{ localStorage.removeItem(BASE_STORAGE_KEY); }catch(e){} }   // libera a cópia antiga
     else if(baseRecs.length){ saveBaseToStorage(); }   // base só no localStorage (versão antiga): passa para o IndexedDB
   }).catch(function(){});
 }
+/* base no formato NOVO (consulta base_pessoas_pge): lida pelo NOME das colunas, não pela posição.
+   - SERVIDOR com vínculo -> baseRecs (o que as telas contam);  PENSIONISTA -> basePens;  DEPENDENTE e "SEM VINCULO" -> baseOutros.
+   - situação vem pronta (colunas ATIVO/INATIVO/FALECIDO/DESLIGADO em S/N) e vira o campo SIT;
+   - regime previdenciário vem pronto (REGIME_PREVIDENCIARIO) e vira REGIME_PREV; a data de vacância (DT_VACANCIA) vira DTVAC. */
+function ingestBaseNova(rows,cab){
+  var falta=['NUMFUNC','CPF','NOME','SITUACAO','CATEGORIA'].filter(function(k){ return !cab[k]; });
+  if(falta.length){ alert('Base no formato novo: não encontrei a(s) coluna(s) '+falta.join(', ')+'.\nConfira se é a planilha da consulta base_pessoas_pge, com a linha de títulos.'); return false; }
+  var g=function(r,k){ var c=cab[k]; return c? String(r[c]==null?'':r[c]).trim() : ''; },
+      gd=function(r,k){ var c=cab[k]; return c? baseData(r[c]) : ''; },
+      sn=function(r,k){ return /^s/i.test(g(r,k)); };
+  var serv=[], pens=[], outros=[], semVinc=0, deps=0;
+  rows.forEach(function(r){
+    var tipo=g(r,'TIPO_PESSOA').toUpperCase(), sitTxt=g(r,'SITUACAO').toUpperCase();
+    var sit = sn(r,'ATIVO')?'ATIVO' : sn(r,'INATIVO')?'INATIVO' : sn(r,'FALECIDO')?'FALECIDO' : sn(r,'DESLIGADO')?'VACANCIA' : 'ND';
+    if(sit==='ND'){   // sem as colunas S/N: lê o texto da situação
+      if(/FALECID/.test(sitTxt)) sit='FALECIDO'; else if(/INATIV|APOSENT/.test(sitTxt)) sit='INATIVO';
+      else if(/DESLIG|ENCERRAD/.test(sitTxt)) sit='VACANCIA'; else if(/ATIVO/.test(sitTxt)) sit='ATIVO'; }
+    var b={TIPO:'SERVIDOR', NUMFUNC:g(r,'NUMFUNC'), NUMVINC:g(r,'NUMVINC'), CPF:padCpf(g(r,'CPF')), NOME:g(r,'NOME'), SITUACAO:g(r,'SITUACAO'), SIT:sit};
+    if(tipo.indexOf('DEPEND')===0){ deps++; b.TIPO='DEPENDENTE'; b.NUMDEP=g(r,'NUMDEP'); b.PARENTESCO=g(r,'PARENTESCO'); b.NOME_TITULAR=g(r,'NOME_TITULAR'); outros.push(b); return; }
+    Object.assign(b,{CARGO:g(r,'CARGO'), LOTACAO:g(r,'LOTACAO'), TIPOVINC:g(r,'TIPO_VINCULO'), CATEGORIA:g(r,'CATEGORIA'), CATEG_E:g(r,'CATEGORIA'), REGIMEJUR:g(r,'REGIME_JURIDICO'),
+      PLANO_PREVIDENCIARIO:g(r,'PLANO_PREVIDENCIARIO'), REGIME_PREV:g(r,'REGIME_PREVIDENCIARIO').toUpperCase(), FONTE_PREV:g(r,'FONTE_REGIME_PREV'),
+      DTADM:gd(r,'DT_EXERCICIO'), DTAPOSENT:gd(r,'DT_APOSENTADORIA'), TIPOAPOS:g(r,'TIPO_APOSENTADORIA'), DTVAC:gd(r,'DT_VACANCIA'), FORMAVAC:g(r,'FORMA_VACANCIA'), DTOBITO:gd(r,'DT_OBITO'),
+      BENEF:sn(r,'BENEFICIO'), CONV:sn(r,'CONVENIO')});
+    if(tipo.indexOf('PENSION')===0){ b.TIPO='PENSIONISTA'; b.NUMPENS=g(r,'NUMPENS'); b.PARENTESCO=g(r,'PARENTESCO'); b.TIPO_PENSAO=g(r,'TIPO_PENSAO'); b.NOME_TITULAR=g(r,'NOME_TITULAR'); pens.push(b); return; }
+    if(!b.NUMVINC || /SEM VINCULO/.test(sitTxt)){ semVinc++; outros.push({TIPO:'SEM VINCULO', NUMFUNC:b.NUMFUNC, CPF:b.CPF, NOME:b.NOME, SITUACAO:b.SITUACAO, SIT:'ND'}); return; }
+    serv.push(b);
+  });
+  if(!serv.length){ alert('Não encontrei nenhuma linha de SERVIDOR com vínculo nesse arquivo.'); return false; }
+  baseRecs=serv; basePens=pens; baseOutros=outros;
+  baseCols={fmt:2, serv:serv.length, pens:pens.length, deps:deps, semVinc:semVinc};
+  try{ localStorage.setItem('esocial_base_cols',JSON.stringify(baseCols)); }catch(e){}
+  indexBase(); saveBaseToStorage(); updateBaseUI(true); updateMenuBaseUI();
+  return true;
+}
+// resumo do que foi carregado (para a mensagem depois de escolher o arquivo)
+function baseResumoTxt(){
+  var n=function(x){ return Number(x||0).toLocaleString('pt-BR'); };
+  if(baseCols && baseCols.fmt===2) return 'Base carregada (formato novo): '+n(baseRecs.length)+' vínculos de servidor ('+n(byCpf.size)+' servidores), '+
+    n(basePens.length)+' pensionistas e '+n(baseCols.deps)+' dependentes.'+(baseCols.semVinc?'\n'+n(baseCols.semVinc)+' pessoa(s) "sem vínculo" ficaram fora da contagem.':'')+'\n\nVale para todas as ferramentas.';
+  return 'Base carregada: '+n(baseRecs.length)+' vínculos. Vale para todas as ferramentas.'; }
+// lê o arquivo da base (.csv ou .xlsx) e devolve as linhas
+function baseLerArquivo(file, cb){
+  var fr=new FileReader(), xl=/\.xlsx?$/i.test(file.name||'');
+  fr.onload=function(){
+    try{
+      if(xl){ var wb=XLSX.read(new Uint8Array(fr.result),{type:'array',cellDates:true}); cb(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]],{defval:''})); }
+      else cb(parseCSV(decodeBytes(fr.result)));
+    }catch(e){ alert('Não consegui ler o arquivo da base: '+e.message); }
+  };
+  fr.readAsArrayBuffer(file); }
 function ingestBase(rows){
+  if(rows && rows.length){ var cabN=baseCab(rows[0]); if(cabN.TIPO_PESSOA) return ingestBaseNova(rows,cabN); }
   if(!rows||!rows.length || !('CPF' in rows[0])){ alert('Base inválida: não encontrei a coluna CPF.'); return false; }
+  basePens=[]; baseOutros=[];   // base no formato antigo não traz pensionistas nem dependentes
   // colunas por POSIÇÃO na planilha (E=categoria, L=vacância, M=aposentadoria, O=admissão).
   // guardamos o nome do cabeçalho que caiu em cada letra para conferência na tela inicial.
   var keys=Object.keys(rows[0]);
@@ -1895,6 +2005,8 @@ function ingestBase(rows){
     NUMFUNC:r.NUMFUNC||'',NUMVINC:r.NUMVINC||'',CPF:padCpf(r.CPF),NOME:r.NOME||'',CARGO:r.CARGO||'',
     LOTACAO:r.LOTACAO||'',TIPOVINC:r.TIPOVINC||'',PLANO_PREVIDENCIARIO:r.PLANO_PREVIDENCIARIO||'',
     DTAPOSENT:r[kApos]||r.DTAPOSENT||'',TIPOAPOS:r.TIPOAPOS||'',FORMAVAC:r[kForm]||r.FORMAVAC||'',
+    // data de vacância: só vale junto com o motivo (regra "saiu antes da competência -> Revisar")
+    DTVAC:(r[kForm]||r.FORMAVAC) ? baseData(r.DTVAC||'') : '',
     CATEGORIA:r.CATEGORIA||'',SITUACAO:r.SITUACAO||'',
     CATEG_E:(colE?(r[colE]||''):(r.CATEGORIA||'')), DTADM:(colO?(r[colO]||''):'')
   }; });
@@ -1926,45 +2038,78 @@ function classify(rec, divRow, compOrd){
     const hasPens = divRow && (divRow.NUMPENS||'').trim()!=='';
     return {evento:'REVISAR', regime:'—', situacao: hasPens?'Pensão (não localizado na base)':'Não localizado na base', plano:'—', found:false, tempNote:''};
   }
+  // 0) PENSIONISTA (só existe na base nova): sempre S-1207, previdenciária ou especial — decisão do usuário em 13/10/2026.
+  //    Óbito do pensionista anterior à competência segue a regra geral de "saiu antes": Revisar.
+  if(rec.TIPO==='PENSIONISTA'){
+    const ob=mord(rec.DTOBITO), quem='Pensionista'+(rec.TIPO_PENSAO?' — '+rec.TIPO_PENSAO:'')+(rec.PARENTESCO?' ('+rec.PARENTESCO+')':'');
+    const planoP=rec.PLANO_PREVIDENCIARIO||'—';
+    if(ob && compOrd!=null && ob.ord<compOrd)
+      return {evento:'REVISAR', regime:'RPPS (pensão)', situacao:quem, plano:planoP, found:true, tempNote:'Pensionista falecido em '+rec.DTOBITO+' (anterior à competência) — conferir pagamento'};
+    let notaP='';
+    if(rec.SIT==='FALECIDO') notaP='Pensionista com óbito registrado'+(rec.DTOBITO?' em '+rec.DTOBITO:'')+' — conferir pagamento';
+    else if(rec.SIT==='VACANCIA') notaP='Pensão encerrada na base — conferir pagamento';
+    return {evento:'S-1207', regime:'RPPS (pensão)', situacao:quem, plano:planoP, found:true, tempNote:notaP};
+  }
   // 1) Grupo benefício: ignorado (definição de envio ao eSocial ainda pendente)
-  const benef = rec.TIPOVINC==='BENEFICIOS' || rec.CATEGORIA==='BENEFICIOS' || rec.SUBCATEGORIA==='BENEFICIOS';
+  const benef = rec.TIPOVINC==='BENEFICIOS' || rec.CATEGORIA==='BENEFICIOS' || rec.SUBCATEGORIA==='BENEFICIOS' || rec.BENEF===true || rec.CONV===true;
   if(benef){
     const temPlano=(rec.PLANO_PREVIDENCIARIO||'').trim()!=='';
     return {evento:'IGNORAR', regime: rec.PLANO_PREVIDENCIARIO||'—', situacao:'Benefício (indefinido)', plano:rec.PLANO_PREVIDENCIARIO||'—', found:true, tempNote: temPlano?'Atenção: este benefício tem plano previdenciário informado':''};
   }
   const plano=(rec.PLANO_PREVIDENCIARIO||'').trim();
-  const apo=mord(rec.DTAPOSENT), vac=mord(rec.DTVAC);
-  const falec = rec.FORMAVAC==='FALECIMENTO';
+  // na base nova a situação vem pronta: vínculo ATIVO ou INATIVO (aposentado vivo) não tem saída, mesmo que haja data em DT_VACANCIA
+  const apo=mord(rec.DTAPOSENT), vac=(rec.SIT==='ATIVO' || rec.SIT==='INATIVO') ? null : mord(rec.DTVAC);
+  const falec = rec.FORMAVAC==='FALECIMENTO' || rec.SIT==='FALECIDO';
+  // base nova: o regime vem pronto (REGIME_PREVIDENCIARIO: RPPS, RGPS ou OUTRO RPPS) mesmo quando o plano está vazio
+  const regPrev=String(rec.REGIME_PREV||'').trim().toUpperCase();
+  const ehRgps = plano==='RGPS' || regPrev==='RGPS';
+  const ehRpps = /RIOPREV|RPPS/i.test(plano) || /RPPS/.test(regPrev);
+  const outroRpps = /OUTRO\s*RPPS/i.test(plano) || /OUTRO\s*RPPS/.test(regPrev);
+  // observações sobre a origem do regime (base nova)
+  const avisos=[];
+  if(outroRpps) avisos.push('RPPS de outro ente');
+  if(/PRESUMID/i.test(rec.FONTE_PREV||'')) avisos.push('Regime presumido pela categoria — conferir');
+  else if(/RUBRICA/i.test(rec.FONTE_PREV||'')) avisos.push('Regime obtido da rubrica de previdência (sem plano no cadastro)');
+  const nt=function(t){ return avisos.concat(t?[t]:[]).join('; '); };
+  // vínculo criado só para registrar o instituidor de uma pensão: sem pensionista identificado, não dá para classificar
+  if(/PENSAO|INSTIT/i.test(rec.TIPOVINC||'') || /LEIS DE PENSAO/i.test(rec.REGIMEJUR||''))
+    return {evento:'REVISAR', regime: regPrev||plano||'—', situacao:'Instituidor de pensão', plano:plano||'—', found:true, tempNote:'Vínculo de instituidor de pensão: a linha não identifica o pensionista (sem NUMPENS) — conferir'};
+  // saiu (exoneração, fim de requisição, demissão, falecimento...) ANTES da competência -> Revisar (a base antiga não trazia a data)
+  const vacAntes = !!(vac && compOrd!=null && vac.ord<compOrd);
+  const saida = (falec?'Falecimento':'Vacância')+(rec.DTVAC?' em '+rec.DTVAC:'')+' (anterior à competência) — conferir pagamento';
 
-  // 2) RGPS -> sempre S-1200 (trabalhador do regime geral)
-  if(plano==='RGPS') return {evento:'S-1200', regime:'RGPS', situacao: apo?'Aposentado':'Ativo', plano, found:true, tempNote:''};
+  // 2) RGPS -> S-1200 (trabalhador do regime geral)
+  if(ehRgps){
+    if(vacAntes) return {evento:'REVISAR', regime:'RGPS', situacao: falec?'Falecido':'Desligado', plano:plano||'RGPS', found:true, tempNote:nt(saida)};
+    return {evento:'S-1200', regime:'RGPS', situacao: apo?'Aposentado':'Ativo', plano:plano||'RGPS', found:true, tempNote:nt('')};
+  }
 
   // 3) Plano desconhecido/vazio -> revisar
-  if(!/RIOPREV|RPPS/i.test(plano)) return {evento:'REVISAR', regime: plano||'Não informado', situacao: apo?'Aposentado':'Ativo', plano:plano||'—', found:true, tempNote:''};
+  if(!ehRpps) return {evento:'REVISAR', regime: plano||regPrev||'Não informado', situacao: apo?'Aposentado':'Ativo', plano:plano||'—', found:true, tempNote:nt('')};
 
-  // 4) RPPS — lógica temporal contra a competência
+  // 4) RPPS (RioPrevidência ou RPPS de outro ente) — lógica temporal contra a competência
+  const regR = outroRpps ? 'RPPS (outro ente)' : 'RPPS';
   if(!apo){
-    if(vac && compOrd!=null && vac.ord<compOrd)
-      return {evento:'REVISAR', regime:'RPPS', situacao:'Ativo', plano, found:true, tempNote:(falec?'Falecimento':'Vacância')+' anterior à competência — conferir pagamento'};
-    return {evento:'S-1202', regime:'RPPS', situacao:'Ativo', plano, found:true, tempNote:''};
+    if(vacAntes) return {evento:'REVISAR', regime:regR, situacao: falec?'Falecido':'Desligado', plano, found:true, tempNote:nt(saida)};
+    return {evento:'S-1202', regime:regR, situacao:'Ativo', plano, found:true, tempNote:nt('')};
   }
   // tem data de aposentadoria
   if(compOrd!=null && apo.ord>compOrd)
-    return {evento:'S-1202', regime:'RPPS', situacao:'Ativo (aposenta depois)', plano, found:true, tempNote:'Aposenta em '+rec.DTAPOSENT+' — ativo nesta competência'};
+    return {evento:'S-1202', regime:regR, situacao:'Ativo (aposenta depois)', plano, found:true, tempNote:nt('Aposenta em '+rec.DTAPOSENT+' — ativo nesta competência')};
 
   // aposentou exatamente na competência — evento configurável (Ajustes de regra)
   if(compOrd!=null && apo.ord===compOrd)
-    return {evento:RULES.apoSameMonth, regime:'RPPS', situacao:'Aposentado', plano, found:true, tempNote:'Aposentou na competência ('+rec.DTAPOSENT+') — conferir rateio ativo/inativo'};
+    return {evento:RULES.apoSameMonth, regime:regR, situacao:'Aposentado', plano, found:true, tempNote:nt('Aposentou na competência ('+rec.DTAPOSENT+') — conferir rateio ativo/inativo')};
 
-  let tempNote='';
-  if(!vac) return {evento:'S-1207', regime:'RPPS', situacao:'Aposentado', plano, found:true, tempNote};
-  if(compOrd!=null && vac.ord>compOrd) return {evento:'S-1207', regime:'RPPS', situacao:'Aposentado', plano, found:true, tempNote};
+  let tempNote=nt('');
+  if(!vac) return {evento:'S-1207', regime:regR, situacao:'Aposentado', plano, found:true, tempNote};
+  if(compOrd!=null && vac.ord>compOrd) return {evento:'S-1207', regime:regR, situacao:'Aposentado', plano, found:true, tempNote};
   if(compOrd!=null && vac.ord===compOrd){
     const t=(falec?'Faleceu na competência ('+rec.DTVAC+')':'Vacância na competência');
-    return {evento:'S-1207', regime:'RPPS', situacao:'Aposentado', plano, found:true, tempNote:(tempNote?tempNote+'; ':'')+t};
+    return {evento:'S-1207', regime:regR, situacao:'Aposentado', plano, found:true, tempNote:(tempNote?tempNote+'; ':'')+t};
   }
   // vacância/óbito anterior à competência
-  return {evento:'REVISAR', regime:'RPPS', situacao:'Aposentado', plano, found:true, tempNote:(falec?'Falecido':'Vacância')+' em '+rec.DTVAC+' (anterior à competência) — conferir pagamento'};
+  return {evento:'REVISAR', regime:regR, situacao:'Aposentado', plano, found:true, tempNote:nt((falec?'Falecido':'Vacância')+' em '+rec.DTVAC+' (anterior à competência) — conferir pagamento')};
 }
 
 /* ---------- divergence field labels ---------- */
@@ -2023,9 +2168,12 @@ function processDivergences(rows){
   for(const g of groups.values()){
     const erg = g.rows['ERGON'], eso = g.rows['eSocial'];
     const any = erg||eso;
-    // base lookup: matricula first (chave firme da folha), then cpf
-    let rec = byMat.get(g.mat); let matchBy = rec?'matrícula':null;
-    if(!rec){ const list=byCpf.get(g.cpf); if(list&&list.length){ rec=list[0]; matchBy='CPF'; } }
+    // base lookup: pensionista (NUMPENS ou CPF dentro do vínculo), depois matrícula (chave firme da folha), depois CPF
+    const numpensLinha = String((erg&&erg.NUMPENS) || (eso&&eso.NUMPENS) || '').trim();
+    const pm = String(g.mat).split('/');
+    const ach = baseAcha(pm[0], pm[1], g.cpf, numpensLinha);
+    let rec = ach.rec; let matchBy = ach.por;
+    const ehPens = !!(rec && rec.TIPO==='PENSIONISTA');
     const baseCpf = rec ? padCpf(rec.CPF) : '';
     const cpfMismatch = !!(rec && matchBy==='matrícula' && baseCpf && g.cpf && baseCpf!==g.cpf);
     const compOrd = (g.ano && g.mes) ? (parseInt(g.ano,10)*12 + (parseInt(g.mes,10)-1)) : null;
@@ -2056,7 +2204,10 @@ function processDivergences(rows){
     people.push({
       cpf:g.cpf, mat:g.mat, ano:g.ano, mes:g.mes, key:pkey,
       nome: (rec&&rec.NOME) || (any&&any.NOME) || '(nome não informado)',
-      cargo: rec&&rec.CARGO || '', lotacao: rec&&rec.LOTACAO || '',
+      // a base nova não traz cargo nem lotação: mostra categoria e tipo de vínculo no lugar (ou os dados da pensão)
+      cargo: rec ? (rec.CARGO || (ehPens ? 'Pensionista'+(rec.PARENTESCO?' · '+rec.PARENTESCO:'') : (rec.CATEGORIA||''))) : '',
+      lotacao: rec ? (rec.LOTACAO || (ehPens ? (rec.NOME_TITULAR?'Instituidor: '+rec.NOME_TITULAR:'') : (rec.TIPOVINC||''))) : '',
+      numpens: ehPens ? String(rec.NUMPENS||'') : numpensLinha,
       autoEvento:cls.evento, evento: ovr||cls.evento, manual: !!ovr,
       status: manualStatus.get(pkey)||'', obs: manualObs.get(pkey)||obsGet('confronto','-',pkey)||'',
       regime:cls.regime, situacao:cls.situacao, plano:cls.plano, found:cls.found,
@@ -2414,10 +2565,10 @@ function handleDivFile(file){
   });
 }
 function handleBaseFile(file){
-  readFile(file,txt=>{
-    if(ingestBase(parseCSV(txt))){
+  baseLerArquivo(file,rows=>{
+    if(ingestBase(rows)){
       $('#baseNote').textContent='base salva neste navegador';
-      alert('Base atualizada: '+baseRecs.length+' vínculos. Vale para as 3 ferramentas.');
+      alert(baseResumoTxt());
     }
   });
 }
@@ -2706,7 +2857,7 @@ function dshCompute(){
     sitMap[o.situacao].esp++; if(s) sitMap[o.situacao].env++;
   });
   // "fora da folha": nome resolvido pela base de servidores do Comparador (byCpf), se carregada
-  var fora=[]; sent.forEach(function(c){ if(!fol.has(c)){ var rec=byCpf.get(c); fora.push({cpf:c,nome:(rec&&rec[0]&&rec[0].NOME)||'',tipos:Array.from(dshSent.get(c)).join(', ')}); } });
+  var fora=[]; sent.forEach(function(c){ if(!fol.has(c)){ fora.push({cpf:c,nome:baseNomeCpf(c),tipos:Array.from(dshSent.get(c)).join(', ')}); } });
   fora.sort(function(a,b){ return (b.nome?1:0)-(a.nome?1:0) || a.cpf.localeCompare(b.cpf); });
   return {folha:fol.size, vinculos:dshFolha.length, sent:sent.size, naFolha:naFolha, pend:pend, fora:fora, cob: fol.size?(naFolha/fol.size*100):0, sitMap:sitMap, catPend:catPend};
 }
@@ -2919,7 +3070,7 @@ function envCompute(){
     if(o.enviado){ enviados.push(o); }
     else { naoEnviado.push(o); if(o.pend) pend.push(o); else restanteN++; }
   });
-  var fora=[]; ger.forEach(function(c){ if(!fol.has(c)){ var rec=byCpf.get(c); fora.push({cpf:c,nome:(rec&&rec[0]&&rec[0].NOME)||'',tipos:Array.from(envGerado.get(c)).join(', ')}); } });
+  var fora=[]; ger.forEach(function(c){ if(!fol.has(c)){ fora.push({cpf:c,nome:baseNomeCpf(c),tipos:Array.from(envGerado.get(c)).join(', ')}); } });
   fora.sort(function(a,b){ return (b.nome?1:0)-(a.nome?1:0) || a.cpf.localeCompare(b.cpf); });
   return {esperados:fol.size, vinculos:envFolha.length, gerados:geradosN, enviados:enviados, naoEnviado:naoEnviado, naoGerado:naoGerado, pend:pend, resolvidas:resolvidas, restante:restanteN, fora:fora, folMap:fol};
 }
@@ -3625,12 +3776,14 @@ function inxCompute(rows,K){
   inxCompTxt=Array.from(comps).sort().join(', ');
   inxItems=[];
   map.forEach(function(it){
-    var rec=byMat.get(it.mat), matchBy=rec?'matrícula':null;
-    if(!rec && it.cpf){ var l=byCpf.get(it.cpf); if(l && l.length){ rec=l[0]; matchBy='CPF'; } }
+    // pensionista (NUMPENS ou CPF dentro do vínculo) antes do servidor: a linha de pensão não é do instituidor
+    var pm=String(it.mat||'').split('/'), ach=baseAcha(it.numfunc||pm[0], it.numvinc||pm[1], it.cpf, it.pens);
+    var rec=ach.rec, matchBy=ach.por, ehPens=!!(rec && rec.TIPO==='PENSIONISTA');
     var compOrd=(it.ano&&it.mes)?(parseInt(it.ano,10)*12+(parseInt(it.mes,10)-1)):null;
     var cls=classify(rec,{NUMPENS:it.pens},compOrd);
+    if(ehPens && !it.pens) it.pens=String(rec.NUMPENS||'');   // achado pelo CPF: guarda o NUMPENS para a gravação/restauração
     it.rec=rec; it.matchBy=matchBy; it.cls=cls; it.auto=inxBucketOf(cls.evento); inxApplyMark(it);
-    it.nome=rec?(rec.NOME||''):''; it.tipovinc=rec?(rec.TIPOVINC||''):''; it.cargo=rec?(rec.CARGO||''):'';
+    it.nome=rec?(rec.NOME||''):''; it.tipovinc=rec?(ehPens?'PENSIONISTA':(rec.TIPOVINC||'')):''; it.cargo=rec?(rec.CARGO||(ehPens?(rec.TIPO_PENSAO||''):(rec.CATEGORIA||''))):'';
     var cpfBase=rec?padCpf(rec.CPF):'';
     it.cpfDif=!!(rec && matchBy==='matrícula' && cpfBase && it.cpf && cpfBase!==it.cpf);
     inxItems.push(it);
@@ -3777,13 +3930,14 @@ const LMB_SIT={FALECIDO:{label:'Falecidos',color:'#BE123C'}, INATIVO:{label:'Ina
 const LMB_REG={RPPS:{label:'RPPS',color:'#1E5AA8'}, RGPS:{label:'RGPS',color:'#0F9D58'}, ND:{label:'Não informado',color:'#D8DEE7'}};
 const LMB_PAL=['#1E5AA8','#4C8BD9','#7C5CD6','#0F9D58','#B45309','#0E7490','#BE123C','#6B7280','#8B5CF6','#0891B2'];
 function lmbSitOf(r){
+  if(r.SIT) return r.SIT;   // base nova: a situação vem pronta (colunas ATIVO/INATIVO/FALECIDO/DESLIGADO); DESLIGADO = VACANCIA
   var fv=lmbNorm(r.FORMAVAC);
   if(fv) return fv.indexOf('FALEC')>=0 ? 'FALECIDO' : 'VACANCIA';
   if(lmbFilled(r.DTAPOSENT)) return 'INATIVO';
   if(lmbFilled(r.DTADM)) return 'ATIVO';
   return 'ND';
 }
-function lmbRegOf(r){ var p=lmbNorm(r.PLANO_PREVIDENCIARIO);
+function lmbRegOf(r){ var p=lmbNorm(r.REGIME_PREV||r.PLANO_PREVIDENCIARIO);   // base nova: regime pronto ("OUTRO RPPS" conta como RPPS)
   if(p.indexOf('RGPS')>=0) return 'RGPS';
   if(p.indexOf('RPPS')>=0 || p.indexOf('RIOPREV')>=0) return 'RPPS';
   return 'ND'; }
@@ -3860,7 +4014,10 @@ function renderMenuBase(){
   }
 
   var bc=(typeof baseCols==='object'&&baseCols)?baseCols:null;
-  var colsTxt = bc && (bc.E||bc.O)
+  var nfB=function(x){ return Number(x||0).toLocaleString('pt-BR'); };
+  var colsTxt = (bc && bc.fmt===2)
+    ? '<div class="lmb-cols">Base no <b>formato novo</b> (consulta base_pessoas_pge) &mdash; <b>'+nfB(baseRecs.length)+'</b> v&iacute;nculos de servidor &middot; <b>'+nfB(basePens.length)+'</b> pensionistas &middot; <b>'+nfB(bc.deps)+'</b> dependentes (s&oacute; para achar nome por CPF)'+(bc.semVinc?' &middot; '+nfB(bc.semVinc)+' sem v&iacute;nculo, fora da contagem':'')+'. Situa&ccedil;&atilde;o e regime lidos direto das colunas da planilha.</div>'
+    : bc && (bc.E||bc.O)
     ? '<div class="lmb-cols">Colunas lidas &mdash; <b>categoria</b>: E ('+lmbEsc(bc.E||'?')+') &middot; <b>vacância</b>: L ('+lmbEsc(bc.L||'?')+') &middot; <b>aposentadoria</b>: M ('+lmbEsc(bc.M||'?')+') &middot; <b>admissão</b>: O ('+lmbEsc(bc.O||'?')+')'+(bc.aviso?' <span class="bad">'+lmbEsc(bc.aviso)+'</span>':'')+'</div>'
     : '<div class="lmb-cols"><span class="bad">Base carregada antes desta versão</span> &mdash; recarregue o arquivo para usar as colunas E e O.</div>';
 
@@ -4349,7 +4506,7 @@ function snapConfrontoDados(){
     if(!h){ for(const [k,v] of honorMap){ if(k.startsWith(p.mat+'|')){ h=v; break; } } }
     return h? {h774:snapR2(h.h774), h8999:snapR2(h.h8999), h4015:snapR2(h.h4015)} : null; };
   var itens=processed.map(function(p){ var v={evento:p.evento, evento_automatico:p.autoEvento, manual:!!p.manual, situacao_manual:p.status||'',
-           observacao:obsLimpa(p.obs), regime:p.regime||'', situacao:p.situacao||'', ano:String(p.ano||''), mes:String(p.mes||''), linhas:linhas(cru.get(p.key))};
+           observacao:obsLimpa(p.obs), regime:p.regime||'', situacao:p.situacao||'', ano:String(p.ano||''), mes:String(p.mes||''), numpens:String(p.numpens||''), linhas:linhas(cru.get(p.key))};
     var h=honor(p); if(h) v.honor=h;
     return {matricula:p.mat||'', tipo:displayBucket(p), valor:v}; });
   return {comp:Object.keys(comps).sort().join(', '), resumo:{formato:2, total:processed.length, por_grupo:por,
@@ -4543,7 +4700,7 @@ function snapRestInexist(x,itens){
   var comp=x.competencia, cm=/^(\d{2})\/(\d{4})/.exec(comp)||[], rows=[], marks={}, obs=[], semBase=0, pulados=0;
   itens.forEach(function(it){
     var v=it.valor||{}, mat=String(it.matricula||''); if(!mat || mat==='/'){ pulados++; return; }
-    var rec=byMat.get(mat), cpf=rec?padCpf(rec.CPF):'', p=mat.split('/'); if(!rec) semBase++;
+    var p=mat.split('/'), rec=baseAcha(p[0],p[1],'',v.numpens).rec, cpf=rec?padCpf(rec.CPF):''; if(!rec) semBase++;
     var ano=String(v.ano||cm[2]||''), mes=String(v.mes||(cm[1]?String(+cm[1]):''));
     var crs=String(v.crmen||'').split(/\s*,\s*/).filter(Boolean), n=Math.max(1,+v.linhas||1);
     for(var i=0;i<n;i++) rows.push({CPF:cpf, NUMFUNC:p[0]||'', NUMVINC:p[1]||'', MATRICULA:'', NUMPENS:String(v.numpens||''), ANO:ano, MES:mes, CRMEN:crs[Math.min(i,crs.length-1)]||''});
@@ -4566,15 +4723,17 @@ function snapRestInexist(x,itens){
 function snapRestConfronto(x,itens){
   var R=x.resumo||{}, cm=/^(\d{2})\/(\d{4})/.exec(x.competencia)||[], rows=[], ov=[], st=[], ob=[], chaves=[], hon=new Map(), semLinhas=0, semBase=0;
   itens.forEach(function(it){
-    var v=it.valor||{}, mat=String(it.matricula||''), rec=(mat&&mat!=='/')?byMat.get(mat):null, cpf=rec?padCpf(rec.CPF):'', p=mat.split('/');
+    var v=it.valor||{}, mat=String(it.matricula||''), p=mat.split('/'), LL=v.linhas||{};
+    var npens=String(v.numpens || (LL.ERGON&&LL.ERGON.NUMPENS) || (LL.eSocial&&LL.eSocial.NUMPENS) || '').trim();
+    var rec=(mat&&mat!=='/')? baseAcha(p[0],p[1],'',npens).rec : null, cpf=rec?padCpf(rec.CPF):'';
     if(!rec) semBase++;
     var ano=String(v.ano!=null&&v.ano!==''?v.ano:(cm[2]||'')), mes=String(v.mes!=null&&v.mes!==''?v.mes:(cm[1]?String(+cm[1]):''));
     var L=v.linhas;
     if(L && Object.keys(L).length){ Object.keys(L).forEach(function(org){ var r=Object.assign({},L[org]);
-        r.CPF=cpf; r.ORIGEM=org; r.ANO=ano; r.MES=mes;
+        r.CPF=cpf; r.ORIGEM=org; r.ANO=ano; r.MES=mes; if(npens && !r.NUMPENS) r.NUMPENS=npens;
         if(!(r.MATRICULA && String(r.MATRICULA).includes('/')) && !r.NUMFUNC && !r.NUMVINC){ r.NUMFUNC=p[0]||''; r.NUMVINC=p[1]||''; }
         rows.push(r); }); }
-    else { semLinhas++; rows.push({CPF:cpf, NUMFUNC:p[0]||'', NUMVINC:p[1]||'', ANO:ano, MES:mes, ORIGEM:'ERGON', DIVERGENCIAS:''}); }
+    else { semLinhas++; rows.push({CPF:cpf, NUMFUNC:p[0]||'', NUMVINC:p[1]||'', NUMPENS:npens, ANO:ano, MES:mes, ORIGEM:'ERGON', DIVERGENCIAS:''}); }
     var key=cpf+'|'+mat+'|'+ano+'|'+mes;   // a mesma chave que o processDivergences monta
     chaves.push(key);
     if(v.manual && v.evento) ov.push([key,v.evento]);
@@ -4802,7 +4961,7 @@ function lmtFatosBase(){
       if(a && a.ord<=ordHoje){ somaCasa+=(ordHoje-a.ord)/12; nCasa++; if(ordHoje-a.ord<=12) adm12++; if(!antigo||a.ord<antigo.ord) antigo=a; }
     }
     if(s==='INATIVO' && g==='RPPS' && cpf) rppsInat.add(cpf);
-    if(lmbNorm(r.TIPOVINC).indexOf('BENEFIC')>=0) benef++;
+    if(lmbNorm(r.TIPOVINC).indexOf('BENEFIC')>=0 || r.BENEF===true || r.CONV===true) benef++;
     var ap=mord(r.DTAPOSENT); if(ap){ if(ap.y===ano) aposAno++; else if(ap.y===ano-1) aposAnt++; }
   });
   var multi=0; porCpf.forEach(function(n){ if(n>1) multi++; });
@@ -4929,7 +5088,7 @@ function pnrCurto(v){ v=+v||0; var a=Math.abs(v);
   return lmtN(Math.round(v)); }
 function hudR(n){ return Math.round(n*10)/10; }   // coordenadas curtas no SVG
 function pnrOrdHoje(){ var h=new Date(); return h.getFullYear()*12+h.getMonth(); }
-function pnrBenef(r){ return lmbNorm(r.TIPOVINC).indexOf('BENEFIC')>=0; }
+function pnrBenef(r){ return lmbNorm(r.TIPOVINC).indexOf('BENEFIC')>=0 || r.BENEF===true || r.CONV===true; }
 // faixa de tempo de casa de um vínculo ATIVO (-1 quando não se aplica)
 function pnrCasaFaixa(r,ordH){ if(lmbSitOf(r)!=='ATIVO') return -1; var a=mord(r.DTADM); if(!a||a.ord>ordH) return -1;
   var anos=(ordH-a.ord)/12; return anos<1?0: anos<5?1: anos<10?2: anos<20?3: anos<30?4:5; }
@@ -5349,9 +5508,9 @@ updateMenuBaseUI(); loadBaseAsync();
   var b=$('#menuBaseBtn'), f=$('#menuBaseFile'), c=$('#menuBaseClear');
   if(b&&f){
     b.addEventListener('click',function(){ f.click(); });
-    f.addEventListener('change',function(e){ var file=e.target.files[0]; if(file){ readFile(file,function(txt){ if(ingestBase(parseCSV(txt))) alert('Base carregada: '+baseRecs.length+' vínculos. Vale para as 3 ferramentas.'); }); } e.target.value=''; });
+    f.addEventListener('change',function(e){ var file=e.target.files[0]; if(file){ baseLerArquivo(file,function(rows){ if(ingestBase(rows)) alert(baseResumoTxt()); }); } e.target.value=''; });
   }
-  if(c){ c.addEventListener('click',function(){ if(!confirm('Limpar a base de servidores carregada?')) return; baseRecs=[]; byMat.clear(); byCpf.clear(); try{localStorage.removeItem(BASE_STORAGE_KEY);}catch(e){} try{baseIdbDel('baseRecs');}catch(e){} updateBaseUI(false); updateMenuBaseUI(); }); }
+  if(c){ c.addEventListener('click',function(){ if(!confirm('Limpar a base de servidores carregada?')) return; baseRecs=[]; basePens=[]; baseOutros=[]; indexBase(); try{localStorage.removeItem(BASE_STORAGE_KEY);}catch(e){} try{baseIdbDel('baseRecs');}catch(e){} try{baseIdbDel('baseExtra');}catch(e){} updateBaseUI(false); updateMenuBaseUI(); }); }
 })();
 $('#btnExport').disabled=true;
 
