@@ -830,11 +830,571 @@
   html[data-theme="dark"] .chip[aria-pressed=true]{color:#08111f}
   html[data-theme="dark"] .btn-clear:hover{color:var(--warn);border-color:var(--warn)}
   .hidden{display:none!important}
+  /* peças que só o layout novo mostra (contexto dos indicadores, competência no topo do Confronto, cabeçalho da mini-tabela) */
+  .kpi-de,.kpi-rg,.hd-comp,.dh-c{display:none}
   @media(max-width:720px){ .person{grid-template-columns:1fr} .diffs{border-left:none;border-top:1px solid var(--line-soft);padding-left:0;padding-top:10px} .basebox{text-align:left} header.app{align-items:flex-start} }
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400..700&display=swap" rel="stylesheet">
+<style id="layoutNovo">
+/* =====================================================================================================
+   LAYOUT NOVO v2 — "folha de conferência" (out/2026)
+   Camada visual por cima do estilo clássico, ativa com html[data-layout="novo"] (o botão da barra lateral
+   volta ao clássico). O Panorama fica de fora de propósito.
+   Ideia: a mesa de quem confere a folha. Papel, tinta e pauta fazem a estrutura; a cor da paleta do usuário
+   marca seleção e ação; cor só aparece com significado (caneta = pendência/divergência, visto = resolvido,
+   marca-texto = Benefícios). Assinatura: a LINHA DE TOTAIS fechada pela dupla linha contábil.
+   Letra: Public Sans (feita para sistemas de governo, algarismos tabulares) + IBM Plex Mono para CPF,
+   matrícula e códigos. Densidade alta: linhas de servidor compactas, observação recolhida até ter texto.
+   Tokens em 3 níveis: primitivas (o mundo) -> semânticas (--fc-*) -> componentes; no fim, as variáveis
+   que o app já usa (--bg, --ink, --line...) passam a apontar para eles.
+   ===================================================================================================== */
+html[data-layout="novo"]{
+  /* 1. primitivas */
+  --papel:#F4F6F5; --folha:#FFFFFF; --tinta:#17263A; --grafite:#556274; --lapis:#6B7686;
+  --pauta:#D5DCDA; --pauta-leve:#E7ECEA;
+  --caneta:#B42318; --caneta-fundo:#FDEDEB;
+  --visto:#1D7A4E; --visto-fundo:#E7F4EC;
+  --marca-fundo:#FFF6D6; --marca-linha:#F2C94C; --marca-tinta:#7A3E06; --marca-forte:#B45309;
+  /* 2. semânticas */
+  --fc-fundo:var(--papel); --fc-folha:var(--folha); --fc-texto:var(--tinta); --fc-texto-2:var(--grafite); --fc-texto-3:var(--lapis);
+  --fc-linha:var(--pauta); --fc-linha-2:var(--pauta-leve); --fc-traco:var(--tinta);
+  --fc-acento:var(--brand); --fc-acento-hover:var(--brand-hover); --fc-sobre-acento:#FFFFFF;
+  --fc-faixa:color-mix(in srgb, var(--brand) 8%, var(--folha)); --fc-faixa-leve:color-mix(in srgb, var(--brand) 4%, var(--folha));
+  --fc-alerta:var(--caneta); --fc-alerta-fundo:var(--caneta-fundo); --fc-ok:var(--visto); --fc-ok-fundo:var(--visto-fundo);
+  --fc-benef:var(--marca-forte); --fc-benef-fundo:var(--marca-fundo); --fc-benef-linha:var(--marca-linha); --fc-benef-tinta:var(--marca-tinta);
+  --fc-sans:"Public Sans","Segoe UI",system-ui,-apple-system,Roboto,Arial,sans-serif;
+  --fc-mono:"IBM Plex Mono",ui-monospace,"Cascadia Mono",Consolas,monospace;
+  --fc-foco:0 0 0 2px var(--fc-folha), 0 0 0 4px var(--fc-acento);
+  /* escala de letra (razão ~1,2) e de espaço (base 4) */
+  --t-11:11.5px; --t-12:12.5px; --t-13:13px; --t-14:14px; --t-16:16px; --t-19:19px; --t-23:23px; --t-28:28px;
+  --e-1:4px; --e-2:8px; --e-3:12px; --e-4:16px; --e-5:24px; --e-6:32px;
+  --r-1:4px; --r-2:6px; --r-3:8px; --r-4:12px;
+  /* 3. componentes */
+  --kpi-num:24px; --linha-y:8px; --linha-x:12px; --ctl-h:28px; --btn-h:32px; --trilho:3px;
+  /* 4. as variáveis do app passam a apontar para os tokens */
+  --bg:var(--fc-fundo); --surface:var(--fc-folha); --ink:var(--fc-texto); --muted:var(--fc-texto-2);
+  --line:var(--fc-linha); --line-soft:var(--fc-linha-2); --thead:var(--fc-folha);
+  --warn:var(--caneta); --warn-bg:var(--caneta-fundo); --just:var(--visto); --just-bg:var(--visto-fundo);
+  --diff:transparent; --diff-line:var(--fc-linha-2);
+  --sans:var(--fc-sans); --mono:var(--fc-mono);
+}
+html[data-layout="novo"][data-theme="dark"]{
+  --papel:#0E1620; --folha:#141E2B; --tinta:#E4EAF1; --grafite:#9CA9B9; --lapis:#8593A4;
+  --pauta:#2A384A; --pauta-leve:#1D2938;
+  --caneta:#F28B82; --caneta-fundo:rgba(242,139,130,.12);
+  --visto:#63C994; --visto-fundo:rgba(99,201,148,.12);
+  --marca-fundo:rgba(242,201,76,.10); --marca-linha:rgba(242,201,76,.45); --marca-tinta:#F5D28A; --marca-forte:#D97706;
+  --fc-acento:var(--brand-dark); --fc-acento-hover:color-mix(in srgb, var(--brand-dark) 82%, #FFFFFF); --fc-sobre-acento:#0E1620;
+  --fc-faixa:color-mix(in srgb, var(--brand-dark) 13%, var(--folha)); --fc-faixa-leve:color-mix(in srgb, var(--brand-dark) 7%, var(--folha));
+}
+
+/* ---------- base ---------- */
+html[data-layout="novo"] body,
+html[data-layout="novo"] #__gate,
+html[data-layout="novo"] #gateMenu{font-family:var(--fc-sans);font-variant-numeric:lining-nums tabular-nums;color:var(--fc-texto)}
+html[data-layout="novo"] body{font-size:var(--t-14);line-height:1.45;background:var(--fc-fundo)}
+html[data-layout="novo"] #__gate,
+html[data-layout="novo"] #gateMenu{background:var(--fc-fundo)}
+html[data-layout="novo"] :focus-visible{outline:2px solid var(--fc-acento);outline-offset:2px}
+html[data-layout="novo"] .lm-side :focus-visible{outline-color:#FFFFFF}
+/* controles nativos (barra de rolagem, seletores, calendário) acompanham o tema */
+html[data-layout="novo"]{color-scheme:light}
+html[data-layout="novo"][data-theme="dark"]{color-scheme:dark}
+/* o cabeçalho fixo dos grupos não pode cobrir o campo que recebeu foco pelo teclado */
+html[data-layout="novo"] .lm-main.tool{scroll-padding-top:56px}
+html[data-layout="novo"] :is(button,.chip,.card,.drop,select,a){touch-action:manipulation}
+html[data-layout="novo"] :is(.rest-box,.cloud-box,.rest-modal,.cloud-modal){overscroll-behavior:contain}
+/* sem maiúsculas espaçadas: os rótulos ficam em frase normal (o Panorama tem identidade própria e fica de fora) */
+html[data-layout="novo"] :is(.brand .eyebrow,.card .lab,.diffs .dh,.dvals .src,.lm-st-k,.lmb-title,.lmb-k,.lmb-table th,.dsh-panel h3,.dsh-table th,
+  .dsh-hist-head h3,.chartcard h3,.dctf-table thead th,.gate-eyebrow,.env-reason label,.lm-brand-txt small,.lm-tk-lab,.lm-item-wip,.lm-tk-item .tag-n,.rules label){text-transform:none;letter-spacing:normal}
+/* o Panorama fica como está (inclusive a letra) até ser redesenhado */
+html[data-layout="novo"] #tool-panorama,
+html[data-layout="novo"] .pnr-foco{font-family:Inter,"Segoe UI",ui-sans-serif,-apple-system,Roboto,Helvetica,Arial,sans-serif;font-variant-numeric:normal}
+/* identificadores (CPF, matrícula, códigos) em letra de máquina; um clique seleciona o CPF inteiro */
+html[data-layout="novo"] :is(.cpf-copia,.env-cpf,.inx-mat,.dsh-table td.mono,.lmb-table td.mono){font-family:var(--fc-mono);font-size:var(--t-12);font-weight:500;letter-spacing:0}
+html[data-layout="novo"] :is(.cpf-copia,.env-cpf){color:var(--fc-texto);user-select:all;cursor:text}
+/* contexto dos indicadores ("de N" + régua): só existe no layout novo */
+html[data-layout="novo"] .kpi-de{display:inline}
+html[data-layout="novo"] .kpi-rg{display:block}
+html[data-layout="novo"] .hd-comp{display:inline}
+html[data-layout="novo"] .dh-c{display:block}
+
+/* ---------- barra lateral: índice de fichário; a tela aberta é uma aba da cor da página ---------- */
+html[data-layout="novo"] .lm-side{padding:20px 0 16px 12px}
+html[data-layout="novo"] .lm-brand{margin-right:12px;padding:0 6px 16px}
+html[data-layout="novo"] .lm-brand-txt b{font-size:var(--t-14);font-weight:700}
+html[data-layout="novo"] .lm-brand-txt small{font-size:var(--t-11);font-weight:500}
+html[data-layout="novo"] .lm-nav{gap:2px;margin-top:14px}
+html[data-layout="novo"] .lm-item,
+html[data-layout="novo"] .lm-side [data-home].lm-item{gap:12px;padding:10px 16px 10px 12px;border-radius:var(--r-3) 0 0 var(--r-3);margin:0;color:var(--brand-on1);background:none;min-height:44px}
+html[data-layout="novo"] .lm-item-ic,
+html[data-layout="novo"] .lm-side [data-home] .lm-item-ic{width:20px;height:20px;background:none;border-radius:0;box-shadow:none;color:inherit}
+html[data-layout="novo"] .lm-item-ic svg,
+html[data-layout="novo"] .lm-side [data-home] .lm-item-ic svg{width:18px;height:18px}
+html[data-layout="novo"] .lm-item-t,
+html[data-layout="novo"] .lm-side [data-home] .lm-item-t{font-size:var(--t-14);font-weight:500;line-height:1.3}
+html[data-layout="novo"] .lm-item:hover{background:rgba(255,255,255,.07);color:#FFFFFF}
+html[data-layout="novo"] .lm-item:hover .lm-item-ic{background:none}
+html[data-layout="novo"] .lm-item.active{background:var(--fc-fundo);color:var(--fc-texto)}
+html[data-layout="novo"] .lm-item.active .lm-item-t{font-weight:700}
+html[data-layout="novo"] .lm-item.active .lm-item-ic{background:none;color:var(--fc-acento)}
+html[data-layout="novo"] .lm-item-wip{font-size:10.5px;letter-spacing:0;padding:0 7px;margin-top:3px}
+html[data-layout="novo"] .lm-item.active .lm-item-wip{color:var(--marca-tinta);border-color:var(--fc-benef-linha);background:var(--fc-benef-fundo)}
+html[data-layout="novo"] .lm-navsep{margin:8px 16px 8px 8px}
+html[data-layout="novo"] .lm-foot{margin-right:12px;gap:2px;padding-top:12px}
+html[data-layout="novo"] .lm-foot-btn{background:none;border:0;color:var(--brand-on2);padding:8px;font-size:var(--t-12);font-weight:500;min-height:36px}
+html[data-layout="novo"] .lm-foot-btn:hover{background:rgba(255,255,255,.07);color:#FFFFFF}
+html[data-layout="novo"] .lm-foot-btn.exit{color:#F4B4B4}
+html[data-layout="novo"] .lm-pal-pop{border-radius:var(--r-3);font-family:var(--fc-sans)}
+
+/* ---------- tela inicial ---------- */
+html[data-layout="novo"] #gateMenu .lm-main:not(.pnr-on){background:var(--fc-fundo)}
+html[data-layout="novo"] #gateMenu .lm-main:not(.tool){flex-direction:column;align-items:stretch;justify-content:flex-start;padding:20px 32px 96px}
+html[data-layout="novo"] .lm-wm svg{opacity:.045}
+/* quadro de status = faixa fina no topo (não cobre os gráficos) */
+html[data-layout="novo"] .lm-main:not(.tool) .lm-status{position:static;width:100%;max-width:1180px;margin:0 auto 20px;display:flex;flex-wrap:wrap;align-items:center;
+  gap:6px 20px;padding:8px 12px;background:var(--fc-folha);border:1px solid var(--fc-linha);border-radius:var(--r-3);box-shadow:none;color:var(--fc-texto)}
+html[data-layout="novo"] .lm-main:not(.tool) .lm-status .lm-st-sep{display:none}
+html[data-layout="novo"] .lm-main:not(.tool) .lm-status :is(.lm-st-k,.lm-st-v,.lm-st-n){margin:0}
+html[data-layout="novo"] .lm-st-name{font-size:var(--t-14);color:var(--fc-texto)}
+html[data-layout="novo"] .lm-st-k{font-size:var(--t-12);font-weight:500;color:var(--fc-texto-2)}
+html[data-layout="novo"] .lm-st-v{font-size:var(--t-13);color:var(--fc-ok)}
+html[data-layout="novo"] .lm-st-v.no{color:var(--fc-alerta)}
+html[data-layout="novo"] .lm-st-n{font-size:var(--t-13);font-weight:600;color:var(--fc-texto)}
+html[data-layout="novo"] .lm-main:not(.tool) .lm-status .lm-st-acts{margin:0 0 0 auto}
+html[data-layout="novo"] .lm-main:not(.tool) .lm-status .lm-st-acts + .lm-st-acts{margin-left:0}
+html[data-layout="novo"] .lm-mini{height:var(--ctl-h);padding:0 10px;border-radius:var(--r-2);background:var(--fc-folha);border-color:var(--fc-linha);color:var(--fc-texto);font-size:var(--t-12);font-weight:600}
+html[data-layout="novo"] .lm-mini:hover{border-color:var(--fc-acento);color:var(--fc-acento)}
+html[data-layout="novo"] .lm-mini.danger{color:var(--fc-alerta);border-color:var(--fc-linha)}
+html[data-layout="novo"] .lm-mini.danger:hover{border-color:var(--fc-alerta);color:var(--fc-alerta)}
+/* painel da base: título, linha de totais com a dupla linha, gráficos em 2 colunas */
+html[data-layout="novo"] .lm-main:not(.tool) .lm-panel{max-width:1180px;margin:0 auto;padding-right:0}
+html[data-layout="novo"] .lmb-title{font-size:var(--t-23);font-weight:700;letter-spacing:-.015em;color:var(--fc-texto)}
+html[data-layout="novo"] .lmb-sub{font-size:var(--t-14);color:var(--fc-texto-2);margin-top:6px;padding-bottom:10px;border-bottom:3px double var(--fc-traco)}
+html[data-layout="novo"] .lmb-sub b{color:var(--fc-texto);font-weight:700;font-size:var(--t-19)}
+html[data-layout="novo"] .lmb-charts{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:24px 40px;margin-top:20px}
+html[data-layout="novo"] .lmb-k{font-size:var(--t-13);font-weight:600;color:var(--fc-texto);padding-bottom:6px;margin-bottom:12px;border-bottom:1px solid var(--fc-linha)}
+html[data-layout="novo"] .lmb-leg{font-size:var(--t-13);gap:1px}
+html[data-layout="novo"] .lmb-leg .li{color:var(--fc-texto);padding:5px 8px;border-radius:var(--r-1)}
+html[data-layout="novo"] .lmb-leg .li:hover{background:var(--fc-faixa-leve)}
+html[data-layout="novo"] .lmb-leg .li.on{background:var(--fc-faixa);color:var(--fc-texto);box-shadow:inset 3px 0 0 var(--fc-acento)}
+html[data-layout="novo"] .lmb-leg .lv,html[data-layout="novo"] .lmb-leg .li.on .lv{font-size:var(--t-14);font-weight:700;color:var(--fc-texto)}
+html[data-layout="novo"] .lmb-leg .lp,html[data-layout="novo"] .lmb-leg .li.on .lp{font-size:var(--t-12);color:var(--fc-texto-2)}
+/* roscas: o número do meio e o trilho seguem o tema (as cores das fatias continuam as do gráfico) */
+html[data-layout="novo"] .lmb-donut svg text:first-of-type{fill:var(--fc-texto)!important}
+html[data-layout="novo"] .lmb-donut svg text:last-of-type{fill:var(--fc-texto-2)!important}
+html[data-layout="novo"] .lmb-donut svg circle:first-child{stroke:var(--fc-linha-2)}
+html[data-layout="novo"] .lmb-cat{margin-top:26px}
+html[data-layout="novo"] .lmb-bar{font-size:var(--t-13);padding:4px 8px;margin:1px 0;border-radius:var(--r-1)}
+html[data-layout="novo"] .lmb-bar:hover{background:var(--fc-faixa-leve)}
+html[data-layout="novo"] .lmb-bar.on{background:var(--fc-faixa);box-shadow:inset 3px 0 0 var(--fc-acento)}
+html[data-layout="novo"] .lmb-bar .lbl,html[data-layout="novo"] .lmb-bar.on .lbl{color:var(--fc-texto);width:230px}
+html[data-layout="novo"] .lmb-bar .track{height:10px;border-radius:2px;background:var(--fc-linha-2)}
+/* categorias são nomes, não alertas: uma só cor (a da paleta) em vez do arco-íris */
+html[data-layout="novo"] .lmb-bar .fill{background:var(--fc-acento)!important;border-radius:2px}
+html[data-layout="novo"] .lmb-bar .val,html[data-layout="novo"] .lmb-bar.on .val{color:var(--fc-texto);font-size:var(--t-14);font-weight:700}
+html[data-layout="novo"] .lmb-bar .val span,html[data-layout="novo"] .lmb-bar.on .val span{color:var(--fc-texto-2);font-weight:500;font-size:var(--t-12)}
+html[data-layout="novo"] .lmb-note,html[data-layout="novo"] .lmb-cols{font-size:var(--t-12);color:var(--fc-texto-3)}
+html[data-layout="novo"] .lmb-cols b{color:var(--fc-texto-2)}
+html[data-layout="novo"] .lmb-fchip{border-radius:var(--r-2);background:var(--fc-faixa);border-color:var(--fc-acento);color:var(--fc-texto)}
+html[data-layout="novo"] .lmb-fclear{border-radius:var(--r-2);border-color:var(--fc-alerta);color:var(--fc-alerta)}
+html[data-layout="novo"] .lmb-listlink{color:var(--fc-acento);font-size:var(--t-13);text-underline-offset:3px}
+html[data-layout="novo"] .lmb-lcount b{color:var(--fc-texto)}
+html[data-layout="novo"] :is(.lmb-lsearch,.lmb-lbtn){height:var(--btn-h);border-radius:var(--r-2);background:var(--fc-folha);border-color:var(--fc-linha);color:var(--fc-texto)}
+html[data-layout="novo"] .lmb-lbtn.pri{background:var(--fc-acento);border-color:var(--fc-acento);color:var(--fc-sobre-acento)}
+html[data-layout="novo"] .lmb-twrap{border-top:0;background:var(--fc-folha);border:1px solid var(--fc-linha);border-radius:var(--r-3)}
+html[data-layout="novo"] .lmb-table th{font-size:var(--t-12);font-weight:600;color:var(--fc-texto-2);border-bottom:1px solid var(--fc-traco);padding:8px 10px}
+html[data-layout="novo"] .lmb-table td{padding:7px 10px;color:var(--fc-texto);border-bottom-color:var(--fc-linha-2)}
+html[data-layout="novo"] .lmb-table tbody tr:hover td{background:var(--fc-faixa-leve)}
+html[data-layout="novo"] .lmb-table td.nm{color:var(--fc-texto)}
+html[data-layout="novo"] .lmb-sub2{color:var(--fc-texto-3)}
+html[data-layout="novo"] .lmb-pager{color:var(--fc-texto-2)}
+/* letreiro: faixa lisa na cor da barra lateral (sem degradê nem sombra) */
+html[data-layout="novo"] .lm-ticker{background:var(--brand-navy);box-shadow:none;font-size:var(--t-13);height:42px;border-top:1px solid rgba(255,255,255,.08)}
+html[data-layout="novo"] .lm-tk-lab{font-size:var(--t-12);font-weight:600;background:rgba(0,0,0,.18)}
+html[data-layout="novo"] .lm-tk-lab::after{display:none}
+
+/* ---------- página de cada ferramenta ---------- */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama){max-width:1180px;padding:24px 32px 72px}
+html[data-layout="novo"] .lm-main.tool .wm{display:none}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) header.app{align-items:flex-end;gap:12px 24px;border-bottom:1px solid var(--fc-linha);padding-bottom:14px;margin-bottom:18px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) header.app::after{display:none}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .brand .eyebrow{display:none}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .brand h1{font-size:var(--t-23);font-weight:700;line-height:1.15;letter-spacing:-.015em;color:var(--fc-texto);margin:0;text-wrap:balance}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .basebox{font-size:var(--t-12);line-height:1.6;color:var(--fc-texto-2)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .basebox b{color:var(--fc-texto)}
+/* a competência é a unidade de trabalho: aparece grande no topo, igual nas 4 telas */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(#envComp,#inxComp,#cmpComp){display:inline-block;font-size:var(--t-28);font-weight:700;line-height:1.05;letter-spacing:-.02em;color:var(--fc-texto);margin:0 0 4px 4px;vertical-align:-3px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) #inssComp{font:inherit;font-size:var(--t-28);font-weight:700;letter-spacing:-.02em;width:128px;height:auto;padding:0 2px;margin:0 0 4px 4px;border:0;border-bottom:1.5px dashed var(--fc-linha);border-radius:0;background:transparent;color:var(--fc-texto);text-align:right;vertical-align:-3px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) #inssComp::placeholder{color:var(--fc-texto-3);font-weight:500}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) #inssComp:focus{outline:none;border-bottom:1.5px solid var(--fc-acento)}
+/* ações do topo: Gravar é a única ação cheia da tela */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .basebox button{height:var(--btn-h);margin-top:6px;padding:0 12px;border:1px solid var(--fc-linha);border-radius:var(--r-2);background:var(--fc-folha);color:var(--fc-texto);font-size:var(--t-12);font-weight:600;transition:background-color .15s,border-color .15s,color .15s}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .basebox button:hover{border-color:var(--fc-texto)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .basebox :is(#envClear,#inxClear,#inssClear,#cmpClear){background:transparent;border-color:transparent;color:var(--fc-texto-2)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .basebox :is(#envClear,#inxClear,#inssClear,#cmpClear):hover{color:var(--fc-alerta);border-color:transparent;background:var(--fc-alerta-fundo)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .basebox .snap-btn{background:var(--fc-acento);border-color:var(--fc-acento);color:var(--fc-sobre-acento)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .basebox .snap-btn:hover{background:var(--fc-acento-hover);border-color:var(--fc-acento-hover);color:var(--fc-sobre-acento)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .basebox button:active{transform:scale(.97)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .snap-estado{font-size:var(--t-11);font-weight:600;margin-top:4px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .snap-estado.pend{color:var(--fc-benef-tinta)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .snap-estado.ok{color:var(--fc-ok)}
+/* Confronto: a linha da base fica discreta; a competência sobe para o topo */
+html[data-layout="novo"] #tool-comparador .basebox #baseNote{color:var(--fc-texto-3)}
+/* textos de explicação: corridos, sem caixa; somem quando a tela já tem dados (continuam no estado vazio) */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.env-explain,.inx-explain){background:none;border:0;border-radius:0;padding:0;margin:0 0 16px;max-width:78ch;font-size:var(--t-13);line-height:1.6;color:var(--fc-texto-2)}
+html[data-layout="novo"] #tool-envio:has(#envResults:not(.hidden)) .env-explain,
+html[data-layout="novo"] #tool-inexist:has(#inxResults:not(.hidden)) .inx-explain{display:none}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .info-note{background:none;border-radius:0;padding:0;font-size:var(--t-12);color:var(--fc-texto-2)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .legend{font-size:var(--t-12);color:var(--fc-texto-2);gap:4px 16px;margin:12px 0 0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .legend code{font-family:var(--fc-mono);font-weight:500;color:var(--fc-texto)}
+/* onde o arquivo entra: faixas baixas, lado a lado */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .drop{background:var(--fc-folha);border:1px dashed var(--fc-linha);border-radius:var(--r-3);transition:border-color .15s,background-color .15s}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .drop:hover,
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .drop.over{border-color:var(--fc-acento);background:var(--fc-faixa-leve)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.drop.compact,.import-row .drop){display:flex;align-items:center;gap:12px;text-align:left;padding:9px 14px;min-height:52px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .import-row .drop .ic{width:28px;height:28px;margin:0;flex:none;border-radius:var(--r-2);border:0;background:var(--fc-faixa);color:var(--fc-acento)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .import-row .drop .ic svg{width:16px;height:16px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .import-row .drop .sub{margin-left:auto;text-align:right}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .drop.compact .ic{width:26px;height:26px;border-radius:50%;font-size:var(--t-12);font-weight:700;background:var(--fc-faixa);color:var(--fc-acento)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .drop .big{font-size:var(--t-14)!important;font-weight:600;color:var(--fc-texto)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .drop .sub{font-size:var(--t-12);color:var(--fc-texto-2);margin-top:1px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .drop .sub b{color:var(--fc-texto)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .import-row #honorbar.loaded{background:var(--fc-ok-fundo);border-style:solid;border-color:transparent}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.dsh-steps,.import-row){gap:10px;margin:0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-folder{margin:10px 0 0;padding:6px 12px;border-radius:var(--r-3);font-size:var(--t-12)}
+/* parâmetros (INSS) e ajustes de regra (Confronto): campos baixos numa linha */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .rules{background:var(--fc-folha);border:1px solid var(--fc-linha);border-radius:var(--r-3);padding:10px 14px;margin-bottom:12px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .rules-grid{gap:10px 16px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .rules label{font-size:var(--t-12);font-weight:600;color:var(--fc-texto);gap:3px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.rules input,.rules select){height:var(--btn-h);padding:0 9px;border-radius:var(--r-2);border-color:var(--fc-linha);background:var(--fc-fundo);color:var(--fc-texto);font-variant-numeric:tabular-nums}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .rules small{font-size:var(--t-11);color:var(--fc-texto-3)}
+
+/* ---------- LINHA DE TOTAIS (assinatura): traço simples em cima, dupla linha contábil embaixo ---------- */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(112px,1fr));gap:0;margin:18px 0 14px;
+  background:var(--fc-folha);border-top:1px solid var(--fc-traco);border-bottom:3px double var(--fc-traco)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .card{display:flex;flex-direction:column;min-width:0;background:transparent;border:0;border-left:1px solid var(--fc-linha-2);border-radius:0;
+  padding:10px 14px 12px;box-shadow:none;transform:none;cursor:pointer;transition:background-color .15s}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .card:first-child{border-left:0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .card:hover{background:var(--fc-faixa-leve);border-color:var(--fc-linha-2);transform:none;box-shadow:none}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .card .lab{display:flex;align-items:center;gap:6px;font-size:var(--t-12);font-weight:500;color:var(--fc-texto-2);line-height:1.3}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .card .num{font-size:var(--kpi-num);font-weight:600;line-height:1.15;letter-spacing:-.01em;margin:4px 0 1px;color:var(--fc-texto);white-space:nowrap}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .card .kpi-de{font-size:var(--t-13);font-weight:400;letter-spacing:0;color:var(--fc-texto-2)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .card .meta{font-size:var(--t-11);color:var(--fc-texto-2);line-height:1.35}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .card .kpi-rg{--rg-c:var(--fc-acento);height:3px;margin-top:auto;padding-top:0;border-top:8px solid transparent;background-clip:content-box;
+  background-image:linear-gradient(var(--rg-c),var(--rg-c));background-size:var(--p,0%) 100%;background-repeat:no-repeat;background-color:var(--fc-linha-2);box-sizing:content-box}
+/* filtro ativo: faixa da cor da paleta + traço embaixo */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .card.sel{outline:none;background:var(--fc-faixa);box-shadow:inset 0 -3px 0 var(--fc-acento)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .card.sel .lab{color:var(--fc-texto)}
+/* cor só com significado: o que é problema em caneta, o que está resolvido em visto, Benefícios em marca-texto */
+/* (prefixo .wrap.screen para ganhar da regra geral dos cartões) */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(#cards .card[data-f="REVISAR"],#envCards .card:is([data-tab="semjson"],[data-tab="pend"]),#inssCards .card:is([data-tab="faltaEso"],[data-tab="faltaFolha"],[data-tab="divBase"]),#inxCards .card[data-b="REVISAR"]) .num{color:var(--fc-alerta)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(#cards .card[data-f="REVISAR"],#envCards .card:is([data-tab="semjson"],[data-tab="pend"]),#inssCards .card:is([data-tab="faltaEso"],[data-tab="faltaFolha"],[data-tab="divBase"]),#inxCards .card[data-b="REVISAR"]) .kpi-rg{--rg-c:var(--fc-alerta)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(#cards .card[data-f="SANADAS"],#envCards .card[data-tab="resolvidas"],#inxCards .card[data-b="JUSTIFICADA"]) .num{color:var(--fc-ok)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(#cards .card[data-f="SANADAS"],#envCards .card[data-tab="resolvidas"],#inxCards .card[data-b="JUSTIFICADA"]) .kpi-rg{--rg-c:var(--fc-ok)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) #inxCards .card[data-b="BENEFICIO"]{background:var(--fc-benef-fundo)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) #inxCards .card[data-b="BENEFICIO"] .num{color:var(--fc-benef-tinta)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) #inxCards .card[data-b="BENEFICIO"] .kpi-rg{--rg-c:var(--fc-benef)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) #inxCards .card[data-b="BENEFICIO"].sel{box-shadow:inset 0 -3px 0 var(--fc-benef)}
+/* nos cartões de evento, um quadradinho com a cor do evento identifica o grupo (igual à legenda) */
+html[data-layout="novo"] :is(#cards .card[data-f^="S-"],#inxCards .card[data-b^="S-"]) .lab::before{content:"";width:8px;height:8px;border-radius:2px;flex:none;background:var(--ev-c,var(--fc-texto-2))}
+html[data-layout="novo"] :is(#cards .card[data-f="S-1200"],#inxCards .card[data-b="S-1200"]){--ev-c:var(--s1200)}
+html[data-layout="novo"] :is(#cards .card[data-f="S-1202"],#inxCards .card[data-b="S-1202"]){--ev-c:var(--s1202)}
+html[data-layout="novo"] :is(#cards .card[data-f="S-1207"],#inxCards .card[data-b="S-1207"]){--ev-c:var(--s1207)}
+
+/* ---------- busca, filtros e exportar ---------- */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .controls{gap:8px 10px;align-items:center;margin:0 0 10px}
+/* barra das listas em 2 linhas iguais nas 4 telas: busca ... limpar/exportar em cima; filtros embaixo */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .controls .chips{order:2;flex:1 1 100%}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .controls input[type=search]{flex:0 1 320px;min-width:200px;height:var(--btn-h);padding:0 10px 0 32px;border:1px solid var(--fc-linha);border-radius:var(--r-2);
+  background:var(--fc-folha) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%236B7686' stroke-width='2' stroke-linecap='round'%3E%3Ccircle cx='11' cy='11' r='7'/%3E%3Cpath d='m20 20-3.5-3.5'/%3E%3C/svg%3E") no-repeat 10px 50%;
+  font:inherit;font-size:var(--t-13);color:var(--fc-texto)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .controls input[type=search]::placeholder{color:var(--fc-texto-3)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .controls input[type=search]:focus{outline:none;border-color:var(--fc-acento);box-shadow:0 0 0 3px var(--fc-faixa)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .chips{gap:2px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .chip{display:inline-flex;align-items:center;gap:6px;height:var(--btn-h);padding:0 9px;border:1px solid transparent;border-radius:var(--r-2);background:transparent;color:var(--fc-texto-2);font-size:var(--t-12);font-weight:500;transition:background-color .15s,color .15s}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .chip:hover{color:var(--fc-texto);background:var(--fc-faixa-leve)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .chip[aria-pressed=true],
+html[data-layout="novo"][data-theme="dark"] .wrap.screen:not(#tool-panorama) .chip[aria-pressed=true]{background:var(--fc-folha);border-color:var(--fc-linha);color:var(--fc-texto);font-weight:600;box-shadow:inset 0 -2px 0 var(--fc-acento)}
+/* só no Confronto e nos Não localizados os filtros são eventos de verdade: ganham o quadradinho da cor */
+html[data-layout="novo"] :is(#chips,#inxChips) .chip:is(.c1200,.c1202,.c1207,.cwarn,.cign,.cjust)::before{content:"";width:8px;height:8px;border-radius:2px;background:var(--ev-c)}
+html[data-layout="novo"] :is(#chips,#inxChips) .chip.c1200{--ev-c:var(--s1200)}
+html[data-layout="novo"] :is(#chips,#inxChips) .chip.c1202{--ev-c:var(--s1202)}
+html[data-layout="novo"] :is(#chips,#inxChips) .chip.c1207{--ev-c:var(--s1207)}
+html[data-layout="novo"] :is(#chips,#inxChips) .chip.cwarn{--ev-c:var(--fc-alerta)}
+html[data-layout="novo"] :is(#chips,#inxChips) .chip.cjust{--ev-c:var(--fc-ok)}
+html[data-layout="novo"] #chips .chip.cign{--ev-c:var(--ignore)}
+html[data-layout="novo"] #inxChips .chip.cign{--ev-c:var(--fc-benef)}
+/* botões das listas: tudo contorno; Exportar vai para a direita */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.btn-export,.btn-clear,.env-bulkbtn,.env-pg,.env-folder-btn,.hb-btn,.rb-resume,.rb-discard,.env-restore-btn){height:var(--btn-h);padding:0 12px;border-radius:var(--r-2);font-size:var(--t-12);font-weight:600;
+  display:inline-flex;align-items:center;gap:6px;transition:background-color .15s,border-color .15s,color .15s;filter:none}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.btn-export,.env-bulkbtn,.env-pg,.env-folder-btn,.hb-btn.ghost,.rb-discard){background:var(--fc-folha);border:1px solid var(--fc-linha);color:var(--fc-texto)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.btn-export,.env-bulkbtn,.env-pg,.env-folder-btn,.hb-btn.ghost,.rb-discard):hover:not(:disabled){border-color:var(--fc-acento);color:var(--fc-acento);background:var(--fc-folha)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.hb-btn:not(.ghost),.rb-resume){background:var(--fc-acento);border:1px solid var(--fc-acento);color:var(--fc-sobre-acento)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.hb-btn:not(.ghost),.rb-resume):hover{background:var(--fc-acento-hover)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .btn-export{margin-left:auto}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .btn-export::before{content:"";width:14px;height:14px;background:currentColor;
+  -webkit-mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4v11m-4-4 4 4 4-4M5 20h14'/%3E%3C/svg%3E") center/contain no-repeat;
+          mask:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%23000' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 4v11m-4-4 4 4 4-4M5 20h14'/%3E%3C/svg%3E") center/contain no-repeat}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .btn-clear{background:transparent;border:1px solid transparent;color:var(--fc-texto-2);margin-left:auto}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .btn-clear + .btn-export{margin-left:0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .btn-clear:hover:not(:disabled){color:var(--fc-alerta);background:var(--fc-alerta-fundo);border-color:transparent}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(button,.chip,.card):active:not(:disabled){transform:scale(.97)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .savednote{font-size:var(--t-11);color:var(--fc-texto-3);margin:0 2px 8px}
+
+/* ---------- a folha: listas de servidores, de vínculos e tabelas de conferência ---------- */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(#groups,#envList,#inxList,#inssList):not(:empty){background:var(--fc-folha);border:1px solid var(--fc-linha);border-radius:var(--r-3);overflow:clip}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.person,.env-item,.inx-row){position:relative;transition:background-color .12s}
+/* régua de leitura: a linha sob o mouse ganha a faixa, como uma régua apoiada na folha */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.person,.env-item,.inx-row):hover,
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.dsh-table,.lmb-table) tbody tr:hover td{background:var(--fc-faixa-leve)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.person,.env-item,.inx-row):focus-within{background:var(--fc-faixa-leve)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .none-shown{padding:16px;color:var(--fc-texto-2);font-size:var(--t-13)}
+
+/* Confronto: grupo de evento = trecho da folha com cabeçalho fixo; servidor = linha de dois andares */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .group{margin:0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .group+.group{border-top:1px solid var(--fc-linha)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .group>h2{position:sticky;top:0;z-index:2;margin:0;padding:10px 12px 8px;gap:10px;background:var(--fc-folha);border-bottom:1px solid var(--fc-traco);font-size:var(--t-14);font-weight:700}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .group>h2 .desc{font-size:var(--t-13);font-weight:500;color:var(--fc-texto-2)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .group>h2 .cnt{font-size:var(--t-12);font-weight:600;color:var(--fc-texto)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .person{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:0 20px;margin:0;padding:9px var(--linha-x) 9px calc(var(--linha-x) + var(--trilho));
+  background:transparent;border:0;border-bottom:1px solid var(--fc-linha-2);border-radius:0;box-shadow:none}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .group .person:last-child{border-bottom:0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .person::before{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--trilho);background:var(--trilho-c,transparent)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .person:has(.pmeta .badge.b1200){--trilho-c:var(--s1200)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .person:has(.pmeta .badge.b1202){--trilho-c:var(--s1202)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .person:has(.pmeta .badge.b1207){--trilho-c:var(--s1207)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .person:has(.pmeta .badge.bwarn),
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .person.warn{--trilho-c:var(--fc-alerta);border-left:0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.person.resolved,.person.justified){--trilho-c:var(--fc-ok)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .person.manedit{box-shadow:none}
+/* o evento já aparece no seletor ao lado (e no cabeçalho do grupo): a etiqueta repetida sai da linha */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .pmeta .tags>.badge{display:none}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.person.resolved,.person.justified){opacity:1}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.person.resolved,.person.justified) :is(.nome,.dvals){color:var(--fc-texto-2)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .pmeta{display:flex;flex-wrap:wrap;align-items:center;column-gap:10px;row-gap:0;min-width:0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .pmeta>*{margin-block:2px}
+/* quebra fixa depois da identificação, para todas as linhas ficarem iguais */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .pmeta::before{content:"";order:1;flex-basis:100%;height:0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .pmeta .nome{font-size:var(--t-14);font-weight:600;line-height:1.3}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .pmeta .ids{flex:1 1 auto;margin:0;gap:2px 12px;font-family:var(--fc-sans);font-size:var(--t-12);color:var(--fc-texto-2)}
+/* sempre 3 andares: 1) quem é  2) categoria + classificação e ações  3) observação */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .pmeta .cargo{order:2;margin:0;font-size:var(--t-12);color:var(--fc-texto-2)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .pmeta .tags{order:3;flex:0 1 auto;margin:0;gap:4px 6px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .pmeta .obs-edit{order:4;flex:1 1 100%;margin:0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .pmeta :is(.nomatch-note,.info-note){order:5;flex-basis:100%;margin:0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .nomatch-note{font-size:var(--t-12);color:var(--fc-alerta)}
+/* campos em divergência = mini-tabela Campo | ERGON | eSocial | Δ, números alinhados à direita */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .diffs{border-left:1px solid var(--fc-linha-2);padding-left:16px;min-width:0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.diffs .dh,.dfield){display:grid;grid-template-columns:minmax(0,1fr) 88px 88px 84px;column-gap:10px;align-items:baseline}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .diffs .dh{font-size:var(--t-11);font-weight:500;color:var(--fc-texto-2);margin:0 0 2px;padding-bottom:3px;border-bottom:1px solid var(--fc-linha)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .diffs .dh .dh-c{text-align:right}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dfield{background:transparent;border:0;border-bottom:1px solid var(--fc-linha-2);border-radius:0;padding:4px 0;margin:0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dfield:last-child{border-bottom:0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dfield .fn{font-family:var(--fc-mono);font-size:var(--t-12);font-weight:600;color:var(--fc-texto);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dvals{display:contents}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dvals>span:not(.arw):not(.delta){text-align:right;white-space:nowrap}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dvals :is(.src,.arw){display:none}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dvals .v{font-family:var(--fc-sans);font-size:var(--t-13);color:var(--fc-texto)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dvals .delta{grid-column:4;margin:0;padding:0;background:transparent;border:0;border-radius:0;text-align:right;white-space:nowrap;font-family:var(--fc-sans);font-size:var(--t-13);font-weight:700;color:var(--fc-alerta)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dfield .hsub{grid-column:1/-1;margin:2px 0 0;font-family:var(--fc-sans);font-size:var(--t-11);color:var(--fc-texto-2)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .hsub .ok{color:var(--fc-ok)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .hsub .res{color:var(--fc-benef-tinta)}
+
+/* Controle de envio: quem | observação | ações numa linha; motivo da pendência logo abaixo */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-bulk{margin:0;padding:8px var(--linha-x);border-bottom:1px solid var(--fc-linha);background:var(--fc-folha);gap:10px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-bulk-note{font-size:var(--t-12);color:var(--fc-texto-2)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-bulkbtn{color:var(--fc-ok)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-item{display:grid;grid-template-columns:minmax(0,1fr) minmax(150px,200px) 348px;column-gap:14px;row-gap:6px;align-items:start;
+  margin:0;padding:var(--linha-y) var(--linha-x) var(--linha-y) calc(var(--linha-x) + var(--trilho));background:transparent;border:0;border-bottom:1px solid var(--fc-linha-2);border-radius:0;box-shadow:none}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-item::before{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--trilho);background:var(--trilho-c,transparent)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-item.pend{--trilho-c:var(--fc-alerta);background:transparent;border-color:var(--fc-linha-2)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-item.sent{opacity:1}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-item.sent :is(.env-nome,.env-cpf){color:var(--fc-texto-2)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-row{display:contents}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-id{grid-column:1;grid-row:1;line-height:1.35}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-obs{grid-column:2;grid-row:1;padding:0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-act{grid-column:3;grid-row:1;display:flex;flex-wrap:wrap;justify-content:flex-end;gap:4px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.env-reason,.env-resolved){grid-column:1/3;grid-row:2;margin:0;padding:0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-nome{font-size:var(--t-14);font-weight:600;margin-left:6px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-tipos{font-family:var(--fc-mono);font-size:var(--t-11);color:var(--fc-texto-2);white-space:nowrap}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.env-badge,.badge,.tag,.inx-ben){white-space:nowrap}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-meta{font-size:var(--t-12);color:var(--fc-texto-2);margin-top:1px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-toggle{height:var(--ctl-h);padding:0 9px;border-radius:var(--r-2);border:1px solid var(--fc-linha);background:var(--fc-folha);color:var(--fc-texto);font-size:var(--t-12);font-weight:500;transition:border-color .15s,background-color .15s,color .15s}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-toggle:hover{border-color:var(--fc-texto)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-toggle.undo{color:var(--fc-alerta)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-toggle.undo:hover{border-color:var(--fc-alerta);background:var(--fc-alerta-fundo)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.env-toggle.send,.env-toggle.resolve){color:var(--fc-ok);font-weight:600}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.env-toggle.send,.env-toggle.resolve):hover{border-color:var(--fc-ok);background:var(--fc-ok-fundo);color:var(--fc-ok)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-reason{display:flex;align-items:baseline;gap:10px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-reason label{flex:none;margin:0;font-size:var(--t-12);font-weight:600;color:var(--fc-alerta)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-reason-input{flex:1;min-height:28px;height:auto;padding:4px 2px;border:0;border-bottom:1px solid var(--fc-alerta);border-radius:0;background:transparent;font-size:var(--t-13);resize:none;color:var(--fc-texto)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-reason-input::placeholder{color:var(--fc-texto-3)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-reason-input:focus{border-bottom-width:2px;padding-bottom:3px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-resolved{font-size:var(--t-12);color:var(--fc-ok)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-badge{border-radius:var(--r-1);font-size:var(--t-11);font-weight:600;padding:1px 6px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.env-badge.ok,.env-badge.sent){background:var(--fc-ok-fundo);color:var(--fc-ok)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-badge.no{background:var(--fc-alerta-fundo);color:var(--fc-alerta)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-badge.res{background:var(--fc-ok-fundo);color:var(--fc-ok)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-pager{margin:0;padding:8px var(--linha-x);border-top:1px solid var(--fc-linha);font-size:var(--t-12);color:var(--fc-texto-2)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-pg{height:var(--ctl-h)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-pgsize{height:var(--ctl-h);border-radius:var(--r-2);background:var(--fc-fundo);border-color:var(--fc-linha)}
+
+/* Não localizados: quem | movimentar | observação; Benefícios continuam em destaque (marca-texto) */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-row{display:grid;grid-template-columns:minmax(0,1fr) 256px minmax(150px,210px);column-gap:14px;row-gap:3px;align-items:start;
+  margin:0;padding:var(--linha-y) var(--linha-x) var(--linha-y) calc(var(--linha-x) + var(--trilho));background:transparent;border:0;border-bottom:1px solid var(--fc-linha-2);border-radius:0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-row::before{content:"";position:absolute;left:0;top:0;bottom:0;width:var(--trilho);background:var(--trilho-c,transparent)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-row.ev1200{--trilho-c:var(--s1200)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-row.ev1202{--trilho-c:var(--s1202)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-row.ev1207{--trilho-c:var(--s1207)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-row.evrev{--trilho-c:var(--fc-alerta)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-row.evjust{--trilho-c:var(--fc-ok)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-top{grid-column:1;grid-row:1;gap:4px 10px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-meta{grid-column:1;grid-row:2;margin:0;gap:2px 10px;font-size:var(--t-12);color:var(--fc-texto-2)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-ctrls{grid-column:2;grid-row:1/3;margin:0;align-self:center;flex-wrap:nowrap}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-row>.obs-edit{grid-column:3;grid-row:1/3;margin:0;align-self:center}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-row>:is(.inx-benmsg,.inx-note){grid-column:1/-1}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-name{font-size:var(--t-14);font-weight:600}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-mat{color:var(--fc-texto-2)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-mat.cpf-copia{color:var(--fc-texto)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-note{margin:2px 0 0;font-size:var(--t-12);color:var(--fc-alerta)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-row.evben{--trilho-c:var(--fc-benef);--trilho:5px;background:var(--fc-benef-fundo);border-bottom-color:var(--fc-benef-linha)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-row.evben:hover{background:var(--fc-benef-fundo);box-shadow:inset 0 0 0 1px var(--fc-benef-linha)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-ben{border-radius:var(--r-1);font-size:var(--t-11);font-weight:700;letter-spacing:.02em;padding:2px 7px;background:var(--marca-forte);color:#FFFFFF}
+html[data-layout="novo"][data-theme="dark"] .wrap.screen:not(#tool-panorama) .inx-ben{color:#1A1206}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-benmsg{margin:3px 0 0;padding:0;background:transparent;border-radius:0;font-size:var(--t-12);font-weight:600;color:var(--fc-benef-tinta)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-alert{margin:12px 0 0;padding:10px 14px;gap:10px;border:0;border-radius:var(--r-3);box-shadow:inset 4px 0 0 var(--fc-benef);background:var(--fc-benef-fundo);color:var(--fc-benef-tinta)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-alert :is(.t,b){color:var(--fc-benef-tinta)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-alert .t{font-size:var(--t-13)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .inx-alert .d{font-size:var(--t-12)}
+
+/* INSS: tabelas de conferência; a da DCTFWeb mantém o visual do print da Receita */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dsh-table{background:transparent;border:0;border-radius:0;font-size:var(--t-13)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dsh-table th{position:sticky;top:0;z-index:1;background:var(--fc-folha);color:var(--fc-texto-2);font-size:var(--t-12);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--fc-traco)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dsh-table td{padding:6px 10px;border-bottom:1px solid var(--fc-linha-2);vertical-align:middle}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dsh-table tbody tr:hover td{background:var(--fc-faixa-leve)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) #inssList .dsh-table td.obs-td{min-width:220px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dsh-panel{background:transparent;border:0;border-radius:0;padding:0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dsh-panel h3{font-size:var(--t-13);font-weight:600;color:var(--fc-texto);margin:0 0 8px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dctf-table{font-size:var(--t-13);border-color:var(--fc-linha);border-radius:var(--r-3)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dctf-table thead th{font-size:var(--t-12);font-weight:700}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dctf-table :is(th,td){padding:7px 12px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dsh-none{font-size:var(--t-12);color:var(--fc-texto-2);padding:6px 2px 0}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) #inssDctf{margin-top:16px}
+
+/* etiquetas, seletores e campos de escrever */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .badge{border-radius:var(--r-1);font-family:var(--fc-mono);font-size:var(--t-11);font-weight:600;letter-spacing:0;padding:1px 6px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .tag{border-radius:var(--r-1);font-size:var(--t-11);font-weight:600;padding:1px 6px;background:transparent;border:1px solid var(--fc-linha);color:var(--fc-texto-2)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .tag.manual{color:var(--s1207);border-color:currentColor;background:transparent}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.tag.st-pend,.tag.nohon){color:var(--fc-alerta);border-color:currentColor;background:transparent}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.tag.st-san,.tag.st-res,.tag.just){color:var(--fc-ok);border-color:currentColor;background:transparent}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .tag.part{color:var(--fc-benef-tinta);border-color:currentColor;background:transparent}
+/* metadados das linhas (regime, vínculo, CRMEN...) como texto simples; só o que é decisão ganha moldura */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.inx-meta,.pmeta .tags) .tag:not(.manual):not(.st-pend):not(.st-san):not(.st-res):not(.st-ace):not(.just):not(.part):not(.nohon){border:0;padding:1px 0;background:transparent;color:var(--fc-texto-2);font-weight:500;font-size:var(--t-12)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.inx-meta,.pmeta .tags) .tag.reg{color:var(--fc-texto);font-weight:700}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.ev-edit,.st-edit){height:var(--ctl-h);max-width:140px;padding:0 4px;border-radius:var(--r-2);border:1px solid var(--fc-linha);background:var(--fc-folha);color:var(--fc-texto);font-size:12px}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.ev-edit,.st-edit):hover{border-color:var(--fc-texto-2)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .ev-edit.on{border-color:var(--s1207);background:var(--fc-folha);box-shadow:inset 0 0 0 1px var(--s1207)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .st-edit.on{border-color:var(--fc-ok);background:var(--fc-folha);box-shadow:inset 0 0 0 1px var(--fc-ok)}
+/* observação: vazia, é um "+ observação" discreto; com texto, vira uma nota com fio à esquerda */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .obs-edit{display:block;width:100%;max-width:none;min-height:28px;margin:0;padding:5px 8px;border:1px solid transparent;border-radius:var(--r-2);background:transparent;
+  font-size:var(--t-12);line-height:1.45;color:var(--fc-texto);transition:border-color .15s,background-color .15s}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .obs-edit::placeholder{color:var(--fc-texto-3)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .obs-edit:placeholder-shown:not(:focus){color:var(--fc-texto-3)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .obs-edit:hover{border-color:var(--fc-linha);background:var(--fc-folha)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .obs-edit:not(:placeholder-shown){border-color:transparent;border-left:2px solid var(--fc-acento);border-radius:0;background:var(--fc-faixa-leve)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .obs-edit:focus{outline:none;border:1px solid var(--fc-acento);border-radius:var(--r-2);background:var(--fc-folha);box-shadow:0 0 0 3px var(--fc-faixa)}
+@supports (field-sizing:content){
+  html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.obs-edit,.env-reason-input){field-sizing:content;height:auto!important}
+}
+
+/* avisos */
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.resumebar,.env-restore,.snap-rest){border:0;border-radius:var(--r-3);box-shadow:inset 3px 0 0 var(--fc-acento);background:var(--fc-faixa);color:var(--fc-texto);padding:10px 14px;font-size:var(--t-13)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-restore-txt span{color:var(--fc-texto-2)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-restore-btn{background:var(--fc-folha);border:1px solid var(--fc-alerta);color:var(--fc-alerta)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-restore-btn:hover{background:var(--fc-alerta);color:var(--fc-folha)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .empty{background:transparent;border:1px dashed var(--fc-linha);border-radius:var(--r-3);padding:28px 24px;color:var(--fc-texto-2);font-size:var(--t-13)}
+html[data-layout="novo"] .wrap.screen:not(#tool-panorama) footer{font-size:var(--t-11);color:var(--fc-texto-3);border-top-color:var(--fc-linha);margin-top:28px}
+html[data-layout="novo"] :is(.rest-box,.cloud-box){border-radius:var(--r-4);font-family:var(--fc-sans)}
+
+/* ---------- login: a barra lateral do app aparece "trancada" (mesma largura, mesmas ferramentas, apagadas);
+   o formulário fica onde o conteúdo vai abrir. Depois de entrar, essa coluna vira a barra lateral. ---------- */
+html[data-layout="novo"] #__gate .gate-brand{flex:0 0 280px;max-width:280px;justify-content:flex-start;gap:0;padding:28px 20px 22px 24px}
+html[data-layout="novo"] #__gate .gate-logo{width:156px}
+html[data-layout="novo"] #__gate .gate-brand-name{font-size:var(--t-23);font-weight:700;letter-spacing:-.015em;line-height:1.15;margin-top:34px}
+html[data-layout="novo"] #__gate .gate-brand-org{font-size:var(--t-12);font-weight:500;letter-spacing:0;line-height:1.4;color:var(--brand-on2);margin-top:6px}
+html[data-layout="novo"] #__gate .gate-brand-desc{font-size:var(--t-13);line-height:1.55;color:var(--brand-on2);margin:16px 0 0;padding-top:14px;border-top:3px double rgba(255,255,255,.32)}
+html[data-layout="novo"] #__gate .gate-tools{display:flex;flex-direction:column;gap:2px;list-style:none;margin:26px 0 0 -8px;padding:0}
+html[data-layout="novo"] #__gate .gate-tools li{display:flex;align-items:center;gap:12px;padding:9px 8px;border-radius:var(--r-3);font-size:var(--t-13);font-weight:500;white-space:nowrap;color:var(--brand-on1);opacity:.62;
+  animation:gateItem .45s cubic-bezier(.23,1,.32,1) both}
+html[data-layout="novo"] #__gate .gate-tools li:nth-child(2){animation-delay:.06s}
+html[data-layout="novo"] #__gate .gate-tools li:nth-child(3){animation-delay:.12s}
+html[data-layout="novo"] #__gate .gate-tools li:nth-child(4){animation-delay:.18s}
+html[data-layout="novo"] #__gate .gate-tools svg{width:18px;height:18px;flex:none}
+@keyframes gateItem{from{opacity:0;transform:translateX(-6px)}}
+html[data-layout="novo"] #__gate .gate-foot{display:block;margin:auto 0 0;padding-top:18px;font-size:var(--t-11);line-height:1.45;color:var(--brand-on2)}
+html[data-layout="novo"] #__gate .gate-panel{background:var(--fc-fundo);justify-content:flex-start;padding:48px clamp(32px,8vw,120px)}
+html[data-layout="novo"] #__gate .gate-form{width:min(392px,100%)}
+html[data-layout="novo"] #__gate .gate-eyebrow{display:none}
+html[data-layout="novo"] #__gate .gate-title{font-size:var(--t-28);font-weight:700;letter-spacing:-.02em;line-height:1.15;color:var(--fc-texto);margin:0 0 10px;padding-bottom:12px;border-bottom:3px double var(--fc-traco)}
+html[data-layout="novo"] #__gate .gate-sub{font-size:var(--t-14);color:var(--fc-texto-2);margin:0 0 24px}
+html[data-layout="novo"] #__gate .gate-label{font-size:var(--t-12);font-weight:600;color:var(--fc-texto);margin-bottom:6px}
+html[data-layout="novo"] #__gate .gate-form input{height:42px;padding:0 12px;font-size:var(--t-14);background:var(--fc-folha);border:1px solid var(--fc-linha);border-radius:var(--r-2);color:var(--fc-texto)}
+html[data-layout="novo"] #__gate .gate-form input::placeholder{color:var(--fc-texto-3)}
+html[data-layout="novo"] #__gate .gate-form input:focus{border-color:var(--fc-acento);box-shadow:0 0 0 3px var(--fc-faixa)}
+html[data-layout="novo"] #__gate .gate-err{font-size:var(--t-13);color:var(--fc-alerta)}
+html[data-layout="novo"] #__gate .gate-err.ok{color:var(--fc-ok)}
+html[data-layout="novo"] #__gate .gate-btn{height:44px;padding:0 16px;font-size:var(--t-14);font-weight:600;border-radius:var(--r-2);background:var(--fc-acento);border-color:var(--fc-acento);color:var(--fc-sobre-acento);transition:background-color .15s,transform .12s}
+html[data-layout="novo"] #__gate .gate-btn:hover{background:var(--fc-acento-hover)}
+html[data-layout="novo"] #__gate .gate-btn:active{transform:scale(.98)}
+html[data-layout="novo"] #__gate .gate-btn:focus-visible{outline:2px solid var(--fc-texto);outline-offset:2px}
+html[data-layout="novo"] #__gate .gate-link{font-size:var(--t-13);color:var(--fc-acento);text-underline-offset:3px;padding:6px 0;min-height:32px}
+html[data-layout="novo"] #__gate .gate-hint{font-size:var(--t-12);line-height:1.55;color:var(--fc-texto-3);margin-top:16px}
+@media (max-width:760px){
+  html[data-layout="novo"] #__gate .gate-brand{flex:none;max-width:none;padding:22px 20px 20px}
+  html[data-layout="novo"] #__gate .gate-logo{width:104px}
+  html[data-layout="novo"] #__gate .gate-brand-name{margin-top:16px;font-size:var(--t-19)}
+  html[data-layout="novo"] #__gate :is(.gate-tools,.gate-foot){display:none}
+  html[data-layout="novo"] #__gate .gate-panel{padding:28px 20px 40px}
+}
+@media (prefers-reduced-motion:reduce){ html[data-layout="novo"] #__gate .gate-tools li{animation:none} }
+
+/* ---------- telas estreitas ---------- */
+@media (max-width:900px){
+  html[data-layout="novo"] .lm-side{padding:16px 12px}
+  html[data-layout="novo"] .lm-item,html[data-layout="novo"] .lm-side [data-home].lm-item{border-radius:var(--r-3)}
+  html[data-layout="novo"] .lm-brand,html[data-layout="novo"] .lm-foot{margin-right:0}
+  html[data-layout="novo"] #gateMenu .lm-main:not(.tool){padding:16px 16px 88px}
+  html[data-layout="novo"] .lmb-charts{grid-template-columns:minmax(0,1fr)}
+  html[data-layout="novo"] .wrap.screen:not(#tool-panorama){padding:18px 16px 56px}
+  html[data-layout="novo"] .wrap.screen:not(#tool-panorama) header.app{flex-direction:column;align-items:flex-start}
+  html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .basebox{text-align:left}
+  html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.env-item,.inx-row){grid-template-columns:minmax(0,1fr)}
+  html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.env-id,.env-obs,.env-act,.env-reason,.env-resolved,.inx-top,.inx-meta,.inx-ctrls,.inx-row>.obs-edit,.inx-row>.inx-benmsg){grid-column:1;grid-row:auto}
+  html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .env-act{justify-content:flex-start}
+  html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .btn-export{margin-left:0}
+}
+@media (max-width:720px){
+  html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .person{grid-template-columns:minmax(0,1fr)}
+  html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .diffs{border-left:0;padding-left:0;border-top:1px solid var(--fc-linha-2);padding-top:6px;margin-top:6px}
+  html[data-layout="novo"] .wrap.screen:not(#tool-panorama) :is(.diffs .dh,.dfield){grid-template-columns:minmax(0,1fr) 78px 78px 74px;column-gap:6px}
+  html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dsh-table{display:block;overflow-x:auto}
+  html[data-layout="novo"] .wrap.screen:not(#tool-panorama) .dsh-panel{overflow-x:auto}
+  html[data-layout="novo"] .lmb-bar .lbl{width:120px}
+  html[data-layout="novo"] .lmb-donut{flex-wrap:wrap;gap:12px 22px}
+  html[data-layout="novo"] .lmb-leg{min-width:220px}
+}
+@media (prefers-reduced-motion:reduce){
+  html[data-layout="novo"] *{transition:none!important}
+  html[data-layout="novo"] :is(button,.chip,.card):active{transform:none!important}
+  html[data-layout="novo"] :is(.lm-main .wrap.screen:not(#tool-panorama),.lm-main:not(.tool) .lm-status){animation:none}
+}
 </style>
 </head>
 <body>
-<script>try{var __pal=localStorage.getItem("esocial_palette");if(__pal&&__pal!=="azul")document.documentElement.setAttribute("data-palette",__pal);}catch(e){}</script>
+<script>try{var __pal=localStorage.getItem("esocial_palette");if(__pal&&__pal!=="azul")document.documentElement.setAttribute("data-palette",__pal);}catch(e){}try{document.documentElement.setAttribute("data-layout",localStorage.getItem("esocial_layout")||"novo");}catch(e){document.documentElement.setAttribute("data-layout","novo");}</script>
 <!-- PORTAO DE SENHA (gate) - visual neon. Senha atual: PGEESOCIAL. So o hash SHA-256 fica aqui. -->
 <!-- Para trocar a senha: gere o SHA-256 e substitua o valor de HASH abaixo. -->
 <style id="__gateStyle">
@@ -872,6 +1432,7 @@
   .gate-btn:hover{background:var(--brand-hover)}
   .gate-btn:active{background:var(--brand-active)}
   .gate-btn:focus-visible{outline:2px solid var(--brand-navy);outline-offset:2px}
+  .gate-tools,.gate-foot{display:none}
   @media (max-width:760px){
     .gate-shell{flex-direction:column}
     .gate-brand{flex:none;max-width:none;padding:30px 24px 24px;gap:6px}
@@ -987,6 +1548,13 @@
       <div class="gate-brand-name">Ferramentas eSocial</div>
       <div class="gate-brand-org">Procuradoria Geral do Estado do Rio de Janeiro</div>
       <p class="gate-brand-desc">Confer&ecirc;ncia dos eventos peri&oacute;dicos do eSocial contra a folha do ERGON. Sistema de uso interno.</p>
+    <ul class="gate-tools" aria-label="Ferramentas dispon&iacute;veis depois de entrar">
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="4" y="2" width="16" height="20" rx="2"/><line x1="8" x2="16" y1="6" y2="6"/><line x1="8" x2="8" y1="14" y2="14"/><line x1="12" x2="12" y1="14" y2="14"/><line x1="16" x2="16" y1="14" y2="14"/><line x1="8" x2="8" y1="18" y2="18"/><line x1="12" x2="12" y1="18" y2="18"/><line x1="16" x2="16" y1="18" y2="18"/><line x1="8" x2="16" y1="10" y2="10"/></svg><span>Confer&ecirc;ncia de INSS (RGPS)</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 3 4 7l4 4"/><path d="M4 7h16"/><path d="m16 21 4-4-4-4"/><path d="M20 17H4"/></svg><span>Confronto eSocial &times; ERGON</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14.536 21.686a.5.5 0 0 0 .937-.024l6.5-19a.496.496 0 0 0-.635-.635l-19 6.5a.5.5 0 0 0-.024.937l7.93 3.18a2 2 0 0 1 1.112 1.11z"/><path d="m21.854 2.147-10.94 10.939"/></svg><span>Controle de envio dos eventos</span></li>
+      <li><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 22h14a2 2 0 0 0 2-2V7l-5-5H6a2 2 0 0 0-2 2v4"/><path d="M14 2v4a2 2 0 0 0 2 2h4"/><circle cx="5" cy="14" r="3"/><path d="m9 18-1.5-1.5"/></svg><span>N&atilde;o localizados no eSocial</span></li>
+    </ul>
+    <p class="gate-foot">N&uacute;cleo de Integra&ccedil;&otilde;es e Obriga&ccedil;&otilde;es Acess&oacute;rias</p>
     </aside>
     <div class="gate-panel">
       <div class="gate-form">
@@ -994,7 +1562,7 @@
         <h1 class="gate-title">Acesso ao sistema</h1>
         <p class="gate-sub">&Aacute;rea restrita. Entre com seu usu&aacute;rio.</p>
         <label class="gate-label" for="__gateEmail">E-mail</label>
-        <input id="__gateEmail" type="email" autocomplete="username" placeholder="voce@exemplo.gov.br">
+        <input id="__gateEmail" type="email" autocomplete="username" spellcheck="false" placeholder="voce@exemplo.gov.br">
         <label class="gate-label" for="__gatePw" style="margin-top:14px">Senha</label>
         <input id="__gatePw" type="password" autocomplete="current-password" placeholder="Digite sua senha">
         <div class="gate-err" id="__gateErr" role="alert" aria-live="polite">&nbsp;</div>
@@ -1054,6 +1622,7 @@
             </div>
           </div>
           <button type="button" class="lm-foot-btn" data-theme-toggle>&#127769; Tema escuro</button>
+          <button type="button" class="lm-foot-btn" data-layout-toggle>&#9636; Voltar ao layout cl&aacute;ssico</button>
           <button type="button" class="lm-foot-btn hidden" id="lmPwBtn">Alterar senha</button>
           <button type="button" class="lm-foot-btn exit" onclick="window.__gateLogout&&window.__gateLogout()">Sair</button>
         </div>
@@ -1285,6 +1854,7 @@
       <h1>Confronto eSocial × ERGON</h1>
     </div>
     <div class="basebox">
+      <span class="hd-comp">Compet&ecirc;ncia: <b id="cmpComp">&mdash;</b><br></span>
       Base de servidores: <b id="baseCount">—</b> vínculos<span id="basePeople"></span><br>
       <span id="baseNote">embutida na ferramenta</span><br>
       <button id="btnBase">Atualizar base de servidores</button>
@@ -1363,7 +1933,7 @@
     <div class="cards" id="cards"></div>
 
     <div class="controls">
-      <input type="search" id="search" placeholder="Buscar por CPF, nome ou matrícula…">
+      <input type="search" id="search" aria-label="Buscar servidor por CPF, nome ou matrícula" autocomplete="off" spellcheck="false" placeholder="Buscar por CPF, nome ou matrícula…">
       <div class="chips" id="chips">
         <button class="chip call" data-f="all" aria-pressed="true">Todos</button>
         <button class="chip c1200" data-f="S-1200" aria-pressed="true">S-1200</button>
@@ -1470,7 +2040,7 @@
       <div class="eyebrow">PGE-RJ &middot; eSocial &mdash; INSS RGPS &times; DCTFWeb</div>
       <h1>Confer&ecirc;ncia de INSS (RGPS)</h1>
     </div>
-    <div class="basebox">Compet&ecirc;ncia: <input id="inssComp" class="inss-comp" placeholder="MM/AAAA" maxlength="7" autocomplete="off"><br>
+    <div class="basebox">Compet&ecirc;ncia: <input id="inssComp" class="inss-comp" aria-label="Competência (MM/AAAA)" placeholder="MM/AAAA" maxlength="7" autocomplete="off"><br>
       <button id="inssClear">Limpar</button> <button class="snap-btn" data-snap="inss" type="button">&#9729; Gravar competência</button> <button class="rest-btn" data-snap-rest="inss" type="button" title="Reabrir uma competência gravada na nuvem">&#8634; Restaurar</button><span class="snap-estado" data-snap-estado="inss" aria-live="polite"></span></div>
   </header>
 
@@ -1499,7 +2069,7 @@
     <div id="inssDctf"></div>
     <div class="cards" id="inssCards"></div>
     <div class="controls">
-      <input type="search" id="inssSearch" placeholder="Buscar por CPF ou nome&hellip;">
+      <input type="search" id="inssSearch" aria-label="Buscar por CPF ou nome" autocomplete="off" spellcheck="false" placeholder="Buscar por CPF ou nome&hellip;">
       <div class="chips" id="inssTabs">
         <button class="chip cwarn" data-tab="faltaEso" aria-pressed="true">Falta no eSocial</button>
         <button class="chip cign" data-tab="faltaFolha" aria-pressed="false">Falta na folha</button>
@@ -1621,7 +2191,7 @@
   <div id="envResults" class="hidden">
     <div class="cards" id="envCards"></div>
     <div class="controls">
-      <input type="search" id="envSearch" placeholder="Buscar por CPF, nome ou matr&iacute;cula&hellip;">
+      <input type="search" id="envSearch" aria-label="Buscar por CPF, nome ou matrícula" autocomplete="off" spellcheck="false" placeholder="Buscar por CPF, nome ou matr&iacute;cula&hellip;">
       <div class="chips" id="envTabs">
         <button class="chip call" data-tab="todos" aria-pressed="false">Todos</button>
         <button class="chip c1200" data-tab="gerados" aria-pressed="false">Gerados</button>
@@ -1667,7 +2237,7 @@
     <div id="inxAlert"></div>
     <div class="cards" id="inxCards"></div>
     <div class="controls">
-      <input type="search" id="inxSearch" placeholder="Buscar por CPF, nome ou matr&iacute;cula&hellip;">
+      <input type="search" id="inxSearch" aria-label="Buscar por CPF, nome ou matrícula" autocomplete="off" spellcheck="false" placeholder="Buscar por CPF, nome ou matr&iacute;cula&hellip;">
       <div class="chips" id="inxChips"></div>
       <button class="btn-export" id="inxExport">Exportar .xlsx</button>
     </div>
@@ -2354,20 +2924,26 @@ function counts(){
   }
   return c;
 }
+/* contexto dos indicadores (só aparece no layout novo): "de N" ao lado do número e uma régua com a proporção.
+   Apenas apresentação — não muda nenhuma contagem. */
+function kpiDe(t){ t=+t||0; return t ? '<span class="kpi-de"> de '+t.toLocaleString('pt-BR')+'</span>' : ''; }
+function kpiRg(n,t){ n=+n||0; t=+t||0; var p=t ? Math.max(0,Math.min(100,n/t*100)) : 0; return '<i class="kpi-rg" style="--p:'+p.toFixed(1)+'%" aria-hidden="true"></i>'; }
+function compMesAno(c){ var m=/^(\d{4})\/(\d{1,2})$/.exec(String(c||'')); return m ? String(m[2]).padStart(2,'0')+'/'+m[1] : (c||'—'); }
 function renderCards(){
   const c=counts();
+  const hc=$('#cmpComp'); if(hc) hc.textContent=compMesAno(competencia);
   const aindaPend = c['S-1200']+c['S-1202']+c['S-1207']+c['REVISAR'];
   const totMeta = `${aindaPend} ainda pendente(s) · competência ${competencia||'—'}`;
   const allSel = DISPLAY_ORDER.every(x=>filterEvent.has(x));
   const sel = f => (f==='all' ? (allSel?' sel':'') : (!allSel && filterEvent.has(f) ? ' sel' : ''));
   const sanMeta = honorLoaded ? `honorários + marcadas na mão · ${c.partial} parcial(is) seguem pendentes` : 'resolvidas / sanadas manualmente';
   $('#cards').innerHTML = `
-    <div class="card etot${sel('all')}" data-f="all" title="Clique para ver todos"><div class="lab">Servidores em divergência</div><div class="num">${c.total}</div><div class="meta">${totMeta}</div></div>
-    <div class="card e1200${sel('S-1200')}" data-f="S-1200" title="Clique para focar; clique em outros para combinar"><div class="lab">S-1200 · RGPS</div><div class="num">${c['S-1200']}</div><div class="meta">ainda pendentes</div></div>
-    <div class="card e1202${sel('S-1202')}" data-f="S-1202" title="Clique para focar; clique em outros para combinar"><div class="lab">S-1202 · RPPS ativo</div><div class="num">${c['S-1202']}</div><div class="meta">ainda pendentes</div></div>
-    <div class="card e1207${sel('S-1207')}" data-f="S-1207" title="Clique para focar; clique em outros para combinar"><div class="lab">S-1207 · Benefícios</div><div class="num">${c['S-1207']}</div><div class="meta">ainda pendentes</div></div>
-    <div class="card ewarn${sel('REVISAR')}" data-f="REVISAR" title="Clique para focar; clique em outros para combinar"><div class="lab">Revisar</div><div class="num">${c['REVISAR']}</div><div class="meta">${c.notfound} não localizado(s) · ${c.cpfdif} CPF difere</div></div>
-    <div class="card ejust${sel('SANADAS')}" data-f="SANADAS" title="Clique para focar; clique em outros para combinar"><div class="lab">Sanadas</div><div class="num">${c['SANADAS']}</div><div class="meta">${sanMeta}</div></div>`;
+    <div class="card etot${sel('all')}" data-f="all" title="Clique para ver todos"><div class="lab">Servidores em divergência</div><div class="num">${c.total}</div><div class="meta">${totMeta}</div>${kpiRg(aindaPend,c.total)}</div>
+    <div class="card e1200${sel('S-1200')}" data-f="S-1200" title="Clique para focar; clique em outros para combinar"><div class="lab">S-1200 · RGPS</div><div class="num">${c['S-1200']}${kpiDe(c.total)}</div><div class="meta">ainda pendentes</div>${kpiRg(c['S-1200'],c.total)}</div>
+    <div class="card e1202${sel('S-1202')}" data-f="S-1202" title="Clique para focar; clique em outros para combinar"><div class="lab">S-1202 · RPPS ativo</div><div class="num">${c['S-1202']}${kpiDe(c.total)}</div><div class="meta">ainda pendentes</div>${kpiRg(c['S-1202'],c.total)}</div>
+    <div class="card e1207${sel('S-1207')}" data-f="S-1207" title="Clique para focar; clique em outros para combinar"><div class="lab">S-1207 · Benefícios</div><div class="num">${c['S-1207']}${kpiDe(c.total)}</div><div class="meta">ainda pendentes</div>${kpiRg(c['S-1207'],c.total)}</div>
+    <div class="card ewarn${sel('REVISAR')}" data-f="REVISAR" title="Clique para focar; clique em outros para combinar"><div class="lab">Revisar</div><div class="num">${c['REVISAR']}${kpiDe(c.total)}</div><div class="meta">${c.notfound} não localizado(s) · ${c.cpfdif} CPF difere</div>${kpiRg(c['REVISAR'],c.total)}</div>
+    <div class="card ejust${sel('SANADAS')}" data-f="SANADAS" title="Clique para focar; clique em outros para combinar"><div class="lab">Sanadas</div><div class="num">${c['SANADAS']}${kpiDe(c.total)}</div><div class="meta">${sanMeta}</div>${kpiRg(c['SANADAS'],c.total)}</div>`;
 }
 function personMatches(p){
   if(!filterEvent.has(displayBucket(p))) return false;
@@ -2406,8 +2982,7 @@ function diffHTML(d, honor){
 }
 function personHTML(p){
   const ev=EVENTS[p.evento];
-  const ids = [`CPF ${p.cpf}`, `Matr. ${p.mat}`].filter(Boolean)
-     .map(x=>`<span>${x}</span>`).join('');
+  const ids = `<span>CPF <span class="cpf-copia" title="Clique para selecionar o CPF">${p.cpf}</span></span><span>Matr. ${p.mat}</span>`;
   let honTag='';
   if(p.honor && p.honor.found){
     if(p.honor.status==='justificada') honTag='<span class="tag just">✓ Justificada (honorários)</span>';
@@ -2442,12 +3017,12 @@ function personHTML(p){
       <div class="ids">${ids}</div>
       <div class="tags">${tags}</div>
       ${p.cargo?`<div class="cargo">${p.cargo}</div>`:''}
-      <textarea class="obs-edit" data-key="${p.key}" rows="1" placeholder="Observação (digite)…" title="Observação manual">${(p.obs||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
+      <textarea class="obs-edit" data-key="${p.key}" rows="1" aria-label="Observação" placeholder="Observação (digite)…" title="Observação manual">${(p.obs||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')}</textarea>
       ${tnote}
       ${note}
     </div>
     <div class="diffs">
-      <div class="dh">Campos em divergência (${p.diffs.length})</div>
+      <div class="dh">Campos em divergência (${p.diffs.length})<span class="dh-c">ERGON</span><span class="dh-c">eSocial</span><span class="dh-c">Δ</span></div>
       ${diffs}
     </div></div>`;
 }
@@ -3101,7 +3676,7 @@ function envPersonHtml(o){
   else if(o.pend){ acts='<button class="env-toggle resolve" data-resolve="'+o.cpf+'">✓ marcar resolvida</button>'+(o.gerado?'<button class="env-toggle send" data-sent="'+o.cpf+'">✓ enviado</button>':'')+'<button class="env-toggle undo" data-unpend="'+o.cpf+'">✕ tirar pendência</button>'; }
   else if(o.resolvido){ acts=(o.gerado?'<button class="env-toggle send" data-sent="'+o.cpf+'">✓ marcar enviado</button>':'')+'<button class="env-toggle undo" data-reopen="'+o.cpf+'">↩ reabrir pendência</button>'; }
   else { acts=(o.gerado?'<button class="env-toggle send" data-sent="'+o.cpf+'">✓ marcar enviado</button>':'')+'<button class="env-toggle" data-pend="'+o.cpf+'">marcar pendente</button>'; }
-  var reason=o.pend?'<div class="env-reason"><label>Motivo do não envio / da pendência</label><textarea class="env-reason-input" data-cpf="'+o.cpf+'" rows="2" placeholder="Descreva por que ainda não foi enviado…">'+(o.motivo||'').replace(/</g,'&lt;')+'</textarea></div>':'';
+  var reason=o.pend?'<div class="env-reason"><label>Motivo do não envio / da pendência</label><textarea class="env-reason-input" aria-label="Motivo do não envio / da pendência" data-cpf="'+o.cpf+'" rows="2" placeholder="Descreva por que ainda não foi enviado…">'+(o.motivo||'').replace(/</g,'&lt;')+'</textarea></div>':'';
   return '<div class="env-item'+(o.pend?' pend':'')+(o.enviado?' sent':'')+'">'+
     '<div class="env-row"><div class="env-id"><span class="env-cpf mono">'+(o.semCpf?'—':o.cpf)+'</span> <span class="env-nome">'+(o.nome||'—')+'</span> '+badge+tip+
       '<div class="env-meta">'+((o.mats&&o.mats.length)?o.mats.join(', ')+' · ':'')+(o.categoria||'')+(o.situacao?' · '+o.situacao:'')+'</div></div>'+
@@ -3116,13 +3691,13 @@ function envRender(){
   if(!hasData) return;
   var c=envCompute(), cob=c.esperados?Math.round(c.enviados.length/c.esperados*100):0;
   $('#envCards').innerHTML=
-    '<div class="card etot" data-tab="todos"><div class="lab">Esperados</div><div class="num">'+c.esperados.toLocaleString('pt-BR')+'</div><div class="meta">'+c.vinculos.toLocaleString('pt-BR')+' vínculos</div></div>'+
-    '<div class="card e1200" data-tab="gerados"><div class="lab">Gerados</div><div class="num">'+c.gerados.toLocaleString('pt-BR')+'</div><div class="meta">têm JSON</div></div>'+
-    '<div class="card e1207" data-tab="enviados"><div class="lab">Enviados</div><div class="num">'+c.enviados.length.toLocaleString('pt-BR')+'</div><div class="meta">'+cob+'% dos esperados</div></div>'+
-    '<div class="card ewarn" data-tab="semjson"><div class="lab">Sem JSON</div><div class="num">'+c.naoGerado.length.toLocaleString('pt-BR')+'</div><div class="meta">na folha, sem evento gerado</div></div>'+
-    '<div class="card e1202" data-tab="pend"><div class="lab">Pendentes</div><div class="num">'+c.pend.length.toLocaleString('pt-BR')+'</div><div class="meta">com motivo</div></div>'+
-    '<div class="card ejust" data-tab="resolvidas"><div class="lab">Resolvidas</div><div class="num">'+c.resolvidas.length.toLocaleString('pt-BR')+'</div><div class="meta">pendências resolvidas</div></div>'+
-    '<div class="card eign" data-tab="fora"><div class="lab">Fora da lista</div><div class="num">'+c.fora.length.toLocaleString('pt-BR')+'</div><div class="meta">gerado, não esperado</div></div>';
+    '<div class="card etot" data-tab="todos"><div class="lab">Esperados</div><div class="num">'+c.esperados.toLocaleString('pt-BR')+'</div><div class="meta">'+c.vinculos.toLocaleString('pt-BR')+' vínculos</div>'+kpiRg(c.esperados,c.esperados)+'</div>'+
+    '<div class="card e1200" data-tab="gerados"><div class="lab">Gerados</div><div class="num">'+c.gerados.toLocaleString('pt-BR')+kpiDe(c.esperados)+'</div><div class="meta">têm JSON</div>'+kpiRg(c.gerados,c.esperados)+'</div>'+
+    '<div class="card e1207" data-tab="enviados"><div class="lab">Enviados</div><div class="num">'+c.enviados.length.toLocaleString('pt-BR')+kpiDe(c.esperados)+'</div><div class="meta">'+cob+'% dos esperados</div>'+kpiRg(c.enviados.length,c.esperados)+'</div>'+
+    '<div class="card ewarn" data-tab="semjson"><div class="lab">Sem JSON</div><div class="num">'+c.naoGerado.length.toLocaleString('pt-BR')+kpiDe(c.esperados)+'</div><div class="meta">na folha, sem evento gerado</div>'+kpiRg(c.naoGerado.length,c.esperados)+'</div>'+
+    '<div class="card e1202" data-tab="pend"><div class="lab">Pendentes</div><div class="num">'+c.pend.length.toLocaleString('pt-BR')+kpiDe(c.esperados)+'</div><div class="meta">com motivo</div>'+kpiRg(c.pend.length,c.esperados)+'</div>'+
+    '<div class="card ejust" data-tab="resolvidas"><div class="lab">Resolvidas</div><div class="num">'+c.resolvidas.length.toLocaleString('pt-BR')+kpiDe(c.pend.length+c.resolvidas.length)+'</div><div class="meta">pendências resolvidas</div>'+kpiRg(c.resolvidas.length,c.pend.length+c.resolvidas.length)+'</div>'+
+    '<div class="card eign" data-tab="fora"><div class="lab">Fora da lista</div><div class="num">'+c.fora.length.toLocaleString('pt-BR')+'</div><div class="meta">gerado, não esperado</div>'+kpiRg(c.fora.length,c.gerados+c.fora.length)+'</div>';
   envRenderList(c);
 }
 function envRenderList(c){
@@ -3153,7 +3728,7 @@ function envPager(start,end,total,pages){
     '<button class="env-pg" data-pg="prev"'+(envPage<=1?' disabled':'')+'>&lsaquo; anterior</button>'+
     '<span class="env-pg-info">'+(total?(start+1):0)+'–'+end+' de '+total.toLocaleString('pt-BR')+' · pág. '+envPage+'/'+pages+'</span>'+
     '<button class="env-pg" data-pg="next"'+(envPage>=pages?' disabled':'')+'>próxima &rsaquo;</button>'+
-    '<span class="env-pg-size">por página <input type="number" min="1" class="env-pgsize" value="'+envPageSize+'"></span>'+
+    '<span class="env-pg-size">por página <input type="number" min="1" class="env-pgsize" aria-label="Itens por página" value="'+envPageSize+'"></span>'+
     '</div>';
 }
 function envExport(){
@@ -3443,7 +4018,7 @@ function inssCompute(){
   return {faltaEso:faltaEso,faltaFolha:faltaFolha,divBase:divBase,divInss:divInss,dctf:d,dctfFolha:df};
 }
 function inssRow(lbl,val,ded,saldo){ return '<tr><td class="l">'+lbl+'</td><td>'+fmtBR(val)+'</td><td>'+(ded?fmtBR(ded):'-')+'</td><td>'+fmtBR(saldo)+'</td></tr>'; }
-function inssCard(cls,lab,num,meta,tab){ return '<div class="card '+cls+(tab&&tab===inssTab?' sel':'')+'"'+(tab?' data-tab="'+tab+'" title="Clique para ver a lista"':'')+'><div class="lab">'+lab+'</div><div class="num">'+(typeof num==='number'?num.toLocaleString('pt-BR'):num)+'</div><div class="meta">'+meta+'</div></div>'; }
+function inssCard(cls,lab,num,meta,tab,tot){ return '<div class="card '+cls+(tab&&tab===inssTab?' sel':'')+'"'+(tab?' data-tab="'+tab+'" title="Clique para ver a lista"':'')+'><div class="lab">'+lab+'</div><div class="num">'+(typeof num==='number'?num.toLocaleString('pt-BR'):num)+(tot?kpiDe(tot):'')+'</div><div class="meta">'+meta+'</div>'+(tot?kpiRg(num,tot):'')+'</div>'; }
 function inssDctfTable(d,title){
   return '<div class="dsh-panel"><h3>'+title+'</h3>'+
     '<table class="dctf-table"><thead><tr><th class="l">Débito apurado</th><th>Valor</th><th>Ded. (SM)</th><th class="saldo">Saldo</th></tr></thead><tbody>'+
@@ -3480,9 +4055,9 @@ function inssRender(){
   $('#inssCards').innerHTML=
     inssCard('etot','CPFs na folha',inssFolha.size,'RGPS','todosFolha')+
     inssCard('e1202','CPFs no eSocial',inssEso.size,'S-5001','todosEso')+
-    inssCard('ewarn','Falta no eSocial',c.faltaEso.length,'na folha, sem apuração','faltaEso')+
-    inssCard('eign','Falta na folha',c.faltaFolha.length,'apurado, fora da folha','faltaFolha')+
-    inssCard('e1207','Divergências',c.divBase.length+c.divInss.length,c.divBase.length+' base · '+c.divInss.length+' INSS','divBase');
+    inssCard('ewarn','Falta no eSocial',c.faltaEso.length,'na folha, sem apuração','faltaEso',inssFolha.size)+
+    inssCard('eign','Falta na folha',c.faltaFolha.length,'apurado, fora da folha','faltaFolha',inssEso.size)+
+    inssCard('e1207','Divergências',c.divBase.length+c.divInss.length,c.divBase.length+' base · '+c.divInss.length+' INSS','divBase',inssFolha.size);
   inssRenderList(c);
 }
 function inssRenderList(c){
@@ -3570,6 +4145,10 @@ function applyTheme(t){
   if(typeof dshRender==='function' && dshFolha.length) dshRender();
   if(typeof dshRenderHist==='function') dshRenderHist();
 }
+/* layout novo x clássico: escolha de cada usuário, guardada neste navegador */
+function applyLayout(l){ document.documentElement.setAttribute('data-layout',l); try{ localStorage.setItem('esocial_layout',l); }catch(e){}
+  document.querySelectorAll('[data-layout-toggle]').forEach(function(b){ b.textContent=(l==='novo'?'▤ Voltar ao layout clássico':'▤ Usar o layout novo'); }); }
+document.addEventListener('click',function(e){ var b=e.target.closest('[data-layout-toggle]'); if(b){ e.preventDefault(); applyLayout(document.documentElement.getAttribute('data-layout')==='novo'?'classico':'novo'); } });
 function initTheme(){
   var t; try{ t=localStorage.getItem('esocial_theme'); }catch(e){} if(!t) t='light';
   document.querySelectorAll('.toolbar').forEach(function(tb){
@@ -3811,7 +4390,7 @@ function inxRender(){
     '<div class="d">O envio desses v&iacute;nculos ao eSocial <b>ainda n&atilde;o est&aacute; definido</b> &mdash; n&atilde;o trate como falta de envio sem confirmar a regra. Eles est&atilde;o destacados na lista abaixo.</div>'+
     '</div></div>') : '';
   var html='<div class="card etot'+(inxFilter.size?'':' sel')+'" data-b="" title="Clique para ver todos"><div class="lab">V&iacute;nculos no relat&oacute;rio</div><div class="num">'+c.total+'</div><div class="meta">'+(c.semBase?c.semBase+' fora da base':'todos localizados na base')+'</div></div>';
-  INX_BUCKETS.forEach(function(b){ html+='<div class="card '+b.card+(inxFilter.has(b.k)?' sel':'')+'" data-b="'+b.k+'" title="Clique para filtrar; clique em outros para combinar"><div class="lab">'+b.lab+'</div><div class="num">'+(c[b.k]||0)+'</div><div class="meta">'+b.desc+'</div></div>'; });
+  INX_BUCKETS.forEach(function(b){ html+='<div class="card '+b.card+(inxFilter.has(b.k)?' sel':'')+'" data-b="'+b.k+'" title="Clique para filtrar; clique em outros para combinar"><div class="lab">'+b.lab+'</div><div class="num">'+(c[b.k]||0)+kpiDe(c.total)+'</div><div class="meta">'+b.desc+'</div>'+kpiRg(c[b.k]||0,c.total)+'</div>'; });
   $('#inxCards').innerHTML=html;
   var ch='<button class="chip call" data-b="" aria-pressed="'+(inxFilter.size?'false':'true')+'">Todos</button>';
   INX_BUCKETS.forEach(function(b){ ch+='<button class="chip '+b.chip+'" data-b="'+b.k+'" aria-pressed="'+(inxFilter.has(b.k)?'true':'false')+'">'+b.lab+' ('+(c[b.k]||0)+')</button>'; });
@@ -4806,7 +5385,7 @@ function obsSet(tool,comp,key,val){
 }
 function obsEsc(s){ return String(s==null?'':s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function obsField(tool,comp,key){
-  return '<textarea class="obs-edit obs-any" rows="1" placeholder="Observação…" data-obs-tool="'+tool+'" data-obs-comp="'+obsEsc(comp||'-')+
+  return '<textarea class="obs-edit obs-any" rows="1" aria-label="Observação" placeholder="Observação…" data-obs-tool="'+tool+'" data-obs-comp="'+obsEsc(comp||'-')+
     '" data-obs-key="'+obsEsc(key)+'">'+obsEsc(obsGet(tool,comp,key))+'</textarea>';
 }
 function obsGrowIn(root){ if(typeof root==='string') root=document.querySelector(root); if(root) root.querySelectorAll('.obs-any').forEach(autoGrowObs); }
@@ -5497,6 +6076,7 @@ document.addEventListener('keydown',function(e){
     var el=document.getElementById(id); if(el) main.appendChild(el); }); })();
 loadRules();
 initTheme();
+applyLayout(document.documentElement.getAttribute('data-layout')||'novo');
 initCloud();
 let baseFromStorage=false;
 if(!baseRecs.length){ baseFromStorage=loadBaseFromStorage(); }
@@ -5549,6 +6129,20 @@ try{
     }
   }
 }catch(e){}
+</script>
+<script>
+/* teclado: os cartões de indicador e as áreas de arquivo são <div> clicáveis. Aqui eles ganham foco (Tab) e
+   respondem a Enter/Espaço com o MESMO clique de sempre — só acessibilidade, nenhuma regra muda. */
+(function(){
+  var SEL='.cards .card[data-f],.cards .card[data-tab],.cards .card[data-b],.drop';
+  function marca(){ document.querySelectorAll(SEL).forEach(function(el){
+    if(!el.hasAttribute('tabindex')){ el.setAttribute('tabindex','0'); el.setAttribute('role','button'); }
+    if(el.classList.contains('card')){ var v=el.classList.contains('sel')?'true':'false'; if(el.getAttribute('aria-pressed')!==v) el.setAttribute('aria-pressed',v); } }); }
+  document.addEventListener('keydown',function(e){ if(e.key!=='Enter' && e.key!==' ') return;
+    var el=e.target; if(!el || !el.matches || !el.matches(SEL)) return; e.preventDefault(); el.click(); });
+  try{ new MutationObserver(marca).observe(document.body,{childList:true,subtree:true,attributes:true,attributeFilter:['class']}); }catch(e){}
+  marca();
+})();
 </script>
 </body>
 </html>
