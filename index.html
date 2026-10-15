@@ -27,14 +27,21 @@
   html[data-palette="petroleo"]{--brand-navy:#0B2E36;--brand:#16707F;--brand-hover:#125C68;--brand-active:#0E4852;
     --brand-on1:#D3EDF0;--brand-on2:#A3D0D6;--brand-focus:#5BB3BF;--brand-soft:#D3EDF0;
     --brand-softbg:#EBF6F8;--brand-softborder:#B3DDE3;--brand-dark:#5CC0CD}
-  /* seletor de paleta (abre para cima, no rodapé da barra lateral) */
-  .lm-pal{position:relative}
-  .lm-pal .lm-foot-btn{width:100%}
-  .lm-pal-pop{position:absolute;left:0;right:0;bottom:calc(100% + 6px);z-index:6;background:#fff;border-radius:10px;
+  /* botão "Configuração" do rodapé da barra lateral: abre para cima com cor, tema, layout e senha */
+  .lm-cfg{position:relative}
+  .lm-cfg .lm-cfg-btn{width:100%;display:flex;align-items:center;gap:8px}
+  .lm-cfg-btn svg{width:16px;height:16px;flex:none}
+  .lm-cfg-seta{margin-left:auto;font-size:11px;opacity:.75;transition:transform .15s}
+  .lm-cfg-btn[aria-expanded="true"] .lm-cfg-seta{transform:rotate(180deg)}
+  .lm-cfg-pop{position:absolute;left:0;right:0;bottom:calc(100% + 6px);z-index:6;background:#fff;border-radius:10px;color:#172033;
     box-shadow:0 12px 32px rgba(0,0,0,.28);padding:6px;display:flex;flex-direction:column;gap:2px}
-  .lm-pal-opt{display:flex;align-items:center;gap:8px;width:100%;font:inherit;font-size:13px;color:#172033;background:none;border:0;
-    padding:7px 9px;border-radius:7px;cursor:pointer;text-align:left}
-  .lm-pal-opt:hover{background:#F1F3F5}
+  .lm-cfg-tit{font-size:11.5px;font-weight:600;color:#5F6B7A;padding:6px 9px 4px}
+  .lm-cfg-pals{display:grid;grid-template-columns:1fr 1fr;gap:2px}
+  .lm-cfg-sep{height:1px;background:#E5E8EC;margin:4px 3px}
+  .lm-pal-opt,.lm-cfg-opt{display:flex;align-items:center;gap:8px;width:100%;font:inherit;font-size:13px;color:#172033;background:none;border:0;
+    padding:7px 9px;border-radius:7px;cursor:pointer;text-align:left;white-space:nowrap}
+  .lm-pal-opt:hover,.lm-cfg-opt:hover{background:#F1F3F5}
+  .lm-cfg-opt{font-weight:500}
   .lm-pal-opt i{width:14px;height:14px;border-radius:4px;flex:none;display:inline-block}
   .lm-pal-opt i+i{margin-left:-4px;box-shadow:0 0 0 2px #fff}
   .lm-pal-opt b{margin-left:4px;font-weight:600}
@@ -947,7 +954,18 @@ html[data-layout="novo"] .lm-foot{margin-right:12px;gap:2px;padding-top:12px}
 html[data-layout="novo"] .lm-foot-btn{background:none;border:0;color:var(--brand-on2);padding:8px;font-size:var(--t-12);font-weight:500;min-height:36px}
 html[data-layout="novo"] .lm-foot-btn:hover{background:rgba(255,255,255,.07);color:#FFFFFF}
 html[data-layout="novo"] .lm-foot-btn.exit{color:#F4B4B4}
-html[data-layout="novo"] .lm-pal-pop{border-radius:var(--r-3);font-family:var(--fc-sans)}
+html[data-layout="novo"] .lm-cfg-btn[aria-expanded="true"]{background:rgba(255,255,255,.07);color:#FFFFFF}
+html[data-layout="novo"] .lm-cfg-pop{border-radius:var(--r-3);font-family:var(--fc-sans);background:var(--fc-folha);color:var(--fc-texto);
+  border:1px solid var(--fc-linha);padding:var(--e-1)}
+html[data-layout="novo"] .lm-cfg-tit{font-size:var(--t-12);font-weight:500;color:var(--fc-texto-2);padding:var(--e-2) var(--e-2) var(--e-1)}
+html[data-layout="novo"] .lm-cfg-sep{background:var(--fc-linha-2);margin:var(--e-1) 0}
+html[data-layout="novo"] .lm-pal-opt,html[data-layout="novo"] .lm-cfg-opt{color:var(--fc-texto);font-size:var(--t-13);border-radius:var(--r-2);
+  padding:var(--e-2);min-height:var(--btn-h);transition:background-color .12s}
+html[data-layout="novo"] .lm-pal-opt:hover,html[data-layout="novo"] .lm-cfg-opt:hover{background:var(--fc-faixa-leve)}
+html[data-layout="novo"] .lm-pal-opt.on{background:var(--fc-faixa)}
+html[data-layout="novo"] .lm-pal-opt.on::after{color:var(--fc-acento)}
+html[data-layout="novo"] .lm-pal-opt i+i{box-shadow:0 0 0 2px var(--fc-folha)}
+html[data-layout="novo"] .lm-pal-opt:focus-visible,html[data-layout="novo"] .lm-cfg-opt:focus-visible{outline:2px solid var(--fc-acento);outline-offset:-2px}
 
 /* ---------- tela inicial ---------- */
 html[data-layout="novo"] #gateMenu .lm-main:not(.pnr-on){background:var(--fc-fundo)}
@@ -1610,20 +1628,24 @@ html[data-layout="novo"] #__gate .gate-hint{font-size:var(--t-12);line-height:1.
           </button>
         </nav>
         <div class="lm-foot">
-          <div class="lm-pal">
-            <button type="button" class="lm-foot-btn" id="lmPalBtn" aria-expanded="false" aria-haspopup="true">&#127912; Cor do sistema</button>
-            <div class="lm-pal-pop hidden" id="lmPalPop" role="menu">
-              <button type="button" class="lm-pal-opt" data-pal="azul"><i style="background:#0B1F3A"></i><i style="background:#1E5AA8"></i><b>Azul PGE</b></button>
-              <button type="button" class="lm-pal-opt" data-pal="verde"><i style="background:#0E3B2E"></i><i style="background:#1F7A57"></i><b>Verde</b></button>
-              <button type="button" class="lm-pal-opt" data-pal="vinho"><i style="background:#3B0E1E"></i><i style="background:#9B2C4A"></i><b>Vinho</b></button>
-              <button type="button" class="lm-pal-opt" data-pal="grafite"><i style="background:#1F2329"></i><i style="background:#4A5563"></i><b>Grafite</b></button>
-              <button type="button" class="lm-pal-opt" data-pal="roxo"><i style="background:#24164A"></i><i style="background:#5B3FB0"></i><b>Roxo</b></button>
-              <button type="button" class="lm-pal-opt" data-pal="petroleo"><i style="background:#0B2E36"></i><i style="background:#16707F"></i><b>Petr&oacute;leo</b></button>
+          <div class="lm-cfg">
+            <button type="button" class="lm-foot-btn lm-cfg-btn" id="lmCfgBtn" aria-expanded="false" aria-haspopup="true" aria-controls="lmCfgPop"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span>Configura&ccedil;&atilde;o</span><span class="lm-cfg-seta" aria-hidden="true">&#9652;</span></button>
+            <div class="lm-cfg-pop hidden" id="lmCfgPop" role="menu" aria-label="Configura&ccedil;&atilde;o">
+              <div class="lm-cfg-tit">Cor do sistema</div>
+              <div class="lm-cfg-pals">
+                <button type="button" class="lm-pal-opt" role="menuitemradio" data-pal="azul"><i style="background:#0B1F3A"></i><i style="background:#1E5AA8"></i><b>Azul PGE</b></button>
+                <button type="button" class="lm-pal-opt" role="menuitemradio" data-pal="verde"><i style="background:#0E3B2E"></i><i style="background:#1F7A57"></i><b>Verde</b></button>
+                <button type="button" class="lm-pal-opt" role="menuitemradio" data-pal="vinho"><i style="background:#3B0E1E"></i><i style="background:#9B2C4A"></i><b>Vinho</b></button>
+                <button type="button" class="lm-pal-opt" role="menuitemradio" data-pal="grafite"><i style="background:#1F2329"></i><i style="background:#4A5563"></i><b>Grafite</b></button>
+                <button type="button" class="lm-pal-opt" role="menuitemradio" data-pal="roxo"><i style="background:#24164A"></i><i style="background:#5B3FB0"></i><b>Roxo</b></button>
+                <button type="button" class="lm-pal-opt" role="menuitemradio" data-pal="petroleo"><i style="background:#0B2E36"></i><i style="background:#16707F"></i><b>Petr&oacute;leo</b></button>
+              </div>
+              <div class="lm-cfg-sep" role="separator"></div>
+              <button type="button" class="lm-cfg-opt" role="menuitem" data-theme-toggle>&#127769; Tema escuro</button>
+              <button type="button" class="lm-cfg-opt" role="menuitem" data-layout-toggle>&#9636; Voltar ao layout cl&aacute;ssico</button>
+              <button type="button" class="lm-cfg-opt hidden" role="menuitem" id="lmPwBtn">&#128273; Alterar senha</button>
             </div>
           </div>
-          <button type="button" class="lm-foot-btn" data-theme-toggle>&#127769; Tema escuro</button>
-          <button type="button" class="lm-foot-btn" data-layout-toggle>&#9636; Voltar ao layout cl&aacute;ssico</button>
-          <button type="button" class="lm-foot-btn hidden" id="lmPwBtn">Alterar senha</button>
           <button type="button" class="lm-foot-btn exit" onclick="window.__gateLogout&&window.__gateLogout()">Sair</button>
         </div>
       </aside>
@@ -5490,18 +5512,26 @@ document.addEventListener('click',function(e){ if(e.target.closest('#envRestoreR
 /* ---------- paleta de cores escolhida pelo usuário (salva neste navegador) ---------- */
 var PALETAS=['azul','verde','vinho','grafite','roxo','petroleo'];
 function palAtual(){ var p='azul'; try{ p=localStorage.getItem('esocial_palette')||'azul'; }catch(e){} return PALETAS.indexOf(p)>=0? p : 'azul'; }
-function palMarcar(p){ document.querySelectorAll('.lm-pal-opt').forEach(function(b){ b.classList.toggle('on', b.dataset.pal===p); }); }
+function palMarcar(p){ document.querySelectorAll('.lm-pal-opt').forEach(function(b){ b.classList.toggle('on', b.dataset.pal===p); b.setAttribute('aria-checked', String(b.dataset.pal===p)); }); }
 function palAplicar(p){
   if(PALETAS.indexOf(p)<0) p='azul';
   if(p==='azul') document.documentElement.removeAttribute('data-palette'); else document.documentElement.setAttribute('data-palette',p);
   try{ localStorage.setItem('esocial_palette',p); }catch(e){}
   palMarcar(p);
 }
+/* menu "Configuração" (rodapé da barra lateral): cor e tema deixam o menu aberto para comparar; layout e senha fecham */
+function cfgMenu(abrir){ var pop=document.getElementById('lmCfgPop'), btn=document.getElementById('lmCfgBtn'); if(!pop||!btn) return;
+  pop.classList.toggle('hidden', !abrir); btn.setAttribute('aria-expanded', String(!!abrir)); }
 document.addEventListener('click',function(e){
-  var pop=document.getElementById('lmPalPop'), btn=e.target.closest('#lmPalBtn'), opt=e.target.closest('.lm-pal-opt');
-  if(btn){ e.preventDefault(); if(pop){ pop.classList.toggle('hidden'); btn.setAttribute('aria-expanded', String(!pop.classList.contains('hidden'))); } return; }
-  if(opt){ e.preventDefault(); palAplicar(opt.dataset.pal); if(pop) pop.classList.add('hidden'); return; }
-  if(pop && !pop.classList.contains('hidden') && !e.target.closest('.lm-pal')) pop.classList.add('hidden');   // clique fora fecha
+  var pop=document.getElementById('lmCfgPop'), aberto=pop && !pop.classList.contains('hidden');
+  if(e.target.closest('#lmCfgBtn')){ e.preventDefault(); cfgMenu(!aberto); return; }
+  var opt=e.target.closest('.lm-pal-opt'); if(opt){ e.preventDefault(); palAplicar(opt.dataset.pal); return; }
+  if(e.target.closest('#lmCfgPop [data-layout-toggle], #lmPwBtn')){ cfgMenu(false); return; }
+  if(aberto && !e.target.closest('.lm-cfg')) cfgMenu(false);   // clique fora fecha
+});
+document.addEventListener('keydown',function(e){
+  var pop=document.getElementById('lmCfgPop');
+  if(e.key==='Escape' && pop && !pop.classList.contains('hidden')){ cfgMenu(false); var b=document.getElementById('lmCfgBtn'); if(b) b.focus(); }
 });
 palMarcar(palAtual());
 
