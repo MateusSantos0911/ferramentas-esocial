@@ -667,6 +667,8 @@
   .lmb-bar .val{width:96px;text-align:right;font-weight:700;font-size:16px;color:var(--brand-navy);font-variant-numeric:tabular-nums;flex:none}
   .lmb-bar .val span{font-weight:600;color:#98A2B0;font-size:12.5px}
   .lmb-note{margin-top:12px;font-size:12px;color:#98A2B0;line-height:1.5}
+  .lmb-mais{display:inline-block;margin-top:10px;font:inherit;font-size:12.5px;font-weight:600;color:var(--brand);background:none;border:0;padding:4px 0;cursor:pointer;text-align:left}
+  .lmb-mais:hover{color:var(--brand-active);text-decoration:underline}
   .lmb-filters{display:flex;flex-wrap:wrap;gap:7px;align-items:center;margin-top:12px}
   .lmb-fchip{font:inherit;font-size:12px;font-weight:600;padding:5px 11px;border-radius:999px;
     background:var(--brand-navy);border:1px solid var(--brand-navy);color:#fff}
@@ -1015,6 +1017,8 @@ html[data-layout="novo"] .lmb-bar .fill{background:var(--fc-acento)!important;bo
 html[data-layout="novo"] .lmb-bar .val,html[data-layout="novo"] .lmb-bar.on .val{color:var(--fc-texto);font-size:var(--t-14);font-weight:700}
 html[data-layout="novo"] .lmb-bar .val span,html[data-layout="novo"] .lmb-bar.on .val span{color:var(--fc-texto-2);font-weight:500;font-size:var(--t-12)}
 html[data-layout="novo"] .lmb-note,html[data-layout="novo"] .lmb-cols{font-size:var(--t-12);color:var(--fc-texto-3)}
+html[data-layout="novo"] .lmb-mais{color:var(--fc-acento);font-size:var(--t-12);font-weight:600;padding:var(--e-1) 0;text-underline-offset:3px;transition:color .12s}
+html[data-layout="novo"] .lmb-mais:focus-visible{outline:2px solid var(--fc-acento);outline-offset:2px;border-radius:var(--r-1)}
 html[data-layout="novo"] .lmb-cols b{color:var(--fc-texto-2)}
 html[data-layout="novo"] .lmb-fchip{border-radius:var(--r-2);background:var(--fc-faixa);border-color:var(--fc-acento);color:var(--fc-texto)}
 html[data-layout="novo"] .lmb-fclear{border-radius:var(--r-2);border-color:var(--fc-alerta);color:var(--fc-alerta)}
@@ -4586,6 +4590,10 @@ function lmbToggle(dim,val){
   if(abriu) lmbScrollList();
 }
 function lmbClearFilters(){ lmbF={sit:new Set(),reg:new Set(),cat:new Set()}; lmbList.page=1; renderMenuBase(); }
+// categorias: mostra as 10 maiores; o botão embaixo das barras abre/fecha as demais
+var lmbCatTodas=false;
+document.addEventListener('click',function(e){ if(!e.target.closest('#menuPanel [data-cat-mais]')) return; e.preventDefault();
+  lmbCatTodas=!lmbCatTodas; renderMenuBase(); var b=document.querySelector('#menuPanel [data-cat-mais]'); if(b) b.focus({preventScroll:true}); });
 
 function renderMenuBase(){
   var el=document.getElementById('menuPanel'); if(!el) return;
@@ -4601,7 +4609,7 @@ function renderMenuBase(){
     return {key:k,label:LMB_REG[k].label,color:LMB_REG[k].color,value:tReg.get(k)||0,on:lmbF.reg.has(k)}; });
   var catAll=Array.from(tCat.entries()).sort(function(a,b){return b[1]-a[1];});
   lmbF.cat.forEach(function(v){ if(!tCat.has(v)) catAll.push([v,0]); });
-  var cat=catAll.slice(0,10).map(function(e,i){ return {key:e[0],label:e[0],value:e[1],on:lmbF.cat.has(e[0]),color:LMB_PAL[i%LMB_PAL.length]}; });
+  var cat=(lmbCatTodas?catAll:catAll.slice(0,10)).map(function(e,i){ return {key:e[0],label:e[0],value:e[1],on:lmbF.cat.has(e[0]),color:LMB_PAL[i%LMB_PAL.length]}; });
   var resto=catAll.length>10 ? catAll.slice(10).reduce(function(a,e){return a+e[1];},0) : 0;
 
   var nF=lmbF.sit.size+lmbF.reg.size+lmbF.cat.size, chips='';
@@ -4632,7 +4640,7 @@ function renderMenuBase(){
       '<div><div class="lmb-k">Regime previdenciário</div><div class="lmb-donut">'+lmbDonut(reg)+lmbLegend(reg,total,'reg')+'</div></div>'+
     '</div>'+
     '<div class="lmb-cat"><div class="lmb-k">Categoria &middot; coluna E</div>'+lmbBars(cat,total)+
-      (resto?'<div class="lmb-note">+ '+resto.toLocaleString('pt-BR')+' vínculo(s) em '+(catAll.length-10)+' outra(s) categoria(s).</div>':'')+
+      (catAll.length>10?'<button type="button" class="lmb-mais" data-cat-mais aria-expanded="'+lmbCatTodas+'">'+(lmbCatTodas?'&minus; Mostrar s&oacute; as 10 maiores categorias':'+ '+resto.toLocaleString('pt-BR')+' v&iacute;nculo(s) em '+(catAll.length-10)+' outra(s) categoria(s) &mdash; ver todas')+'</button>':'')+
     '</div>'+
     lmbListSectionHtml()+
     colsTxt;
