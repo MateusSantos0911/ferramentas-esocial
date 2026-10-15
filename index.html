@@ -985,6 +985,9 @@ html[data-layout="novo"] .lm-st-v.no{color:var(--fc-alerta)}
 html[data-layout="novo"] .lm-st-n{font-size:var(--t-13);font-weight:600;color:var(--fc-texto)}
 html[data-layout="novo"] .lm-main:not(.tool) .lm-status .lm-st-acts{margin:0 0 0 auto}
 html[data-layout="novo"] .lm-main:not(.tool) .lm-status .lm-st-acts + .lm-st-acts{margin-left:0}
+/* com a base carregada, a faixa mostra só quem está acessando e, no outro canto, Trocar base / × (pedido do usuário).
+   Sem base, continua avisando "Base de servidores: Não". */
+html[data-layout="novo"] .lm-main:not(.tool) .lm-status:has(#menuBaseYN:not(.no)) :is(.lm-st-k,#menuBaseYN,#menuBaseCount){display:none}
 html[data-layout="novo"] .lm-mini{height:var(--ctl-h);padding:0 10px;border-radius:var(--r-2);background:var(--fc-folha);border-color:var(--fc-linha);color:var(--fc-texto);font-size:var(--t-12);font-weight:600}
 html[data-layout="novo"] .lm-mini:hover{border-color:var(--fc-acento);color:var(--fc-acento)}
 html[data-layout="novo"] .lm-mini.danger{color:var(--fc-alerta);border-color:var(--fc-linha)}
@@ -1020,6 +1023,11 @@ html[data-layout="novo"] .lmb-note,html[data-layout="novo"] .lmb-cols{font-size:
 html[data-layout="novo"] .lmb-mais{color:var(--fc-acento);font-size:var(--t-12);font-weight:600;padding:var(--e-1) 0;text-underline-offset:3px;transition:color .12s}
 html[data-layout="novo"] .lmb-mais:focus-visible{outline:2px solid var(--fc-acento);outline-offset:2px;border-radius:var(--r-1)}
 html[data-layout="novo"] .lmb-cols b{color:var(--fc-texto-2)}
+/* a nota sobre o formato da base sai da tela inicial (pedido do usuário); só volta quando traz um aviso para corrigir (.bad) */
+html[data-layout="novo"] .lmb-cols:not(:has(.bad)){display:none}
+/* a linha "N vínculos · N servidores" sai: os números já estão nos gráficos (pedido do usuário). Filtros ativos seguem nas etiquetas. */
+html[data-layout="novo"] .lmb-sub{display:none}
+html[data-layout="novo"] .lmb-sub + .lmb-filters{margin-top:12px}
 html[data-layout="novo"] .lmb-fchip{border-radius:var(--r-2);background:var(--fc-faixa);border-color:var(--fc-acento);color:var(--fc-texto)}
 html[data-layout="novo"] .lmb-fclear{border-radius:var(--r-2);border-color:var(--fc-alerta);color:var(--fc-alerta)}
 html[data-layout="novo"] .lmb-listlink{color:var(--fc-acento);font-size:var(--t-13);text-underline-offset:3px}
@@ -4639,7 +4647,7 @@ function renderMenuBase(){
       '<div><div class="lmb-k">Situação</div><div class="lmb-donut">'+lmbDonut(sit)+lmbLegend(sit,total,'sit')+'</div></div>'+
       '<div><div class="lmb-k">Regime previdenciário</div><div class="lmb-donut">'+lmbDonut(reg)+lmbLegend(reg,total,'reg')+'</div></div>'+
     '</div>'+
-    '<div class="lmb-cat"><div class="lmb-k">Categoria &middot; coluna E</div>'+lmbBars(cat,total)+
+    '<div class="lmb-cat"><div class="lmb-k">Categorias</div>'+lmbBars(cat,total)+
       (catAll.length>10?'<button type="button" class="lmb-mais" data-cat-mais aria-expanded="'+lmbCatTodas+'">'+(lmbCatTodas?'&minus; Mostrar s&oacute; as 10 maiores categorias':'+ '+resto.toLocaleString('pt-BR')+' v&iacute;nculo(s) em '+(catAll.length-10)+' outra(s) categoria(s) &mdash; ver todas')+'</button>':'')+
     '</div>'+
     lmbListSectionHtml()+
